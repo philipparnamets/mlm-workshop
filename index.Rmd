@@ -9,26 +9,94 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Testing a quick fit of brms
 ```{r}
 library(brms)
+library(ggplot2)
+library(bayesplot)
+library(tidyverse)
+library(kableExtra)
+```
+
+
+```{r load data}
+d <- read.delim(url("https://raw.githubusercontent.com/philipparnamets/mlm-workshop/master/data/d_export.txt"))
 ```
 
 ```{r}
-x <-  seq(1:100)
-y <- x + rnorm(100,0,10)
-d <- data.frame(x=x, y=y)
-plot(x,y)
+summary(d)
 ```
 
-```{r, results='hide', cache=T}
-fit <- brm(y ~ x, 
-           data = d,
-           cores = 3, chains = 3)
+Data comes from a trust learning experiment and represents a subset of 30 participants. Each participants did 30 trials with social partners from a trustworthy group and 30 trials with social partners from an untrustworthy group. 
+
+The aim of the analysis will be to understand if participant **response times differ between groups**.
+
+
+#Data visualization and preparation
+
+##Relationship between RT and Trustworthiness
+
+```{r}
+# create factor
+d$Trustworthy_fac <- factor(d$Trustworthy, labels = c("Untrustworthy",
+                                                      "Trustworthy"))
+
+# summary table
+d %>% group_by(Trustworthy_fac) %>%
+  summarise(Average = mean(RT),
+            Median = median(RT),
+            SD = sd(RT),
+            SE = SD/sqrt(n())) %>%
+  kable(.) %>%
+  kable_styling(., bootstrap_options = c("striped", "responsive", "condensed"),
+                full_width = F)
 ```
 
 ```{r}
-summary(fit)
+# plot
+ggplot(data = d) +
+  aes(x = Trustworthy_fac, y = RT, 
+      fill = Trustworthy_fac) +
+  geom_violin() +
+  geom_boxplot(fill="gray", 
+               notch = T ,
+               width = 0.4) 
+
+```
+
+
+Lot's of outliers, let's filter the data at 10s, which seems to be plenty to make a response anyways.. 
+
+```{r}
+# plot
+d %>% filter(RT<10) %>%
+ggplot(data = .) +
+  aes(x = Trustworthy_fac, y = RT, 
+      fill = Trustworthy_fac) +
+  geom_violin() +
+  geom_boxplot(fill="gray", 
+               notch = T ,
+               width = 0.4) 
+
+```
+
+Response time data are skewed:
+
+```{r}
+ggplot(d) +
+  aes(RT) +
+  geom_histogram(binwidth = 0.25)
+```
+
+One way of dealing with this is log-transforming the data.
+
+```{r}
+# log transform
+d$RT_log <- log(d$RT)
+
+#plot 
+ggplot(d) +
+  aes(RT_log) +
+  geom_histogram(binwidth = 0.1)
 ```
 
 
