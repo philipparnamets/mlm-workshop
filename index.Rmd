@@ -9,6 +9,74 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+Begin by loading the packages we are going to need:
+
+```{r packages}
+library(brms)
+library(ggplot2)
+```
+
+
+#The data
+
+The data comes from a trust learning experiment and is a subset of 20 of the participants. 
+
+```{r}
+d <- read.delim(url("https://raw.githubusercontent.com/philipparnamets/mlm-workshop/master/data/d_export.txt"))
+```
+
+##Visualization and data preparation
+
+```{r}
+summary(d)
+```
+
+The goal of the analysis will be to see if there are differences in response times depending if the partner comes from a trustworthy or untrustworthy group. We also know how trustworthy each partners's facehas been rated to be.
+
+###Response times
+
+```{r}
+#histogram over response times
+with(d, hist(RT, density = 20, breaks = 135))
+```
+
+Unsurprisingly rather right-skewed. There are different ways of dealing with this such as fitting ex-Gaussian distributions. For this example we will just log transform the data to make it more approximately normal.
+
+```{r}
+#log-transform
+d$RT_log <- log(d$RT)
+with(d, hist(RT_log, density = 20, breaks = 135))
+```
+
+
+###Trustworthiness ratings
+
+```{r}
+#histogram over trust ratings
+with(d, hist(Face_trust, density = 20))
+```
+
+We have some variation in the ratings, which is nice. We will however want to scale the variable to aid model convergence and interpretability.
+
+```{r}
+#scale ratings
+d$Face_trust_s <- scale(d$Face_trust)
+```
+
+###Plot the relationship between Trustworthiness and RT
+
+```{r}
+d$Trustworthy_f <- factor(d$Trustworthy, 
+                          labels = c("Untrustworthy",
+                                     "Trustworthy"))
+ggplot(data = d) +
+  aes(x = Trustworthy_f, y = RT) +
+  geom_violin()
+  
+  
+```
+
+
 ## Testing a quick fit of brms
 ```{r}
 library(brms)
