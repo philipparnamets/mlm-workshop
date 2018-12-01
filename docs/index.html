@@ -206,12 +206,40 @@ $(document).ready(function () {
 
 </div>
 
+<div id="TOC">
+<ul>
+<li><a href="#data-visualization-and-preparation">Data visualization and preparation</a><ul>
+<li><a href="#relationship-between-rt-and-trustworthiness">Relationship between RT and Trustworthiness</a></li>
+</ul></li>
+</ul>
+</div>
 
-<pre class="r"><code>library(brms)
-library(ggplot2)
-library(bayesplot)
-library(tidyverse)
-library(kableExtra)</code></pre>
+<pre class="r"><code>library(brms)</code></pre>
+<pre><code>## Loading required package: Rcpp</code></pre>
+<pre><code>## Loading required package: ggplot2</code></pre>
+<pre><code>## Need help? Try Stackoverflow:
+## https://stackoverflow.com/tags/ggplot2.</code></pre>
+<pre><code>## Loading &#39;brms&#39; package (version 2.6.0). Useful instructions
+## can be found by typing help(&#39;brms&#39;). A more detailed introduction
+## to the package is available through vignette(&#39;brms_overview&#39;).
+## Run theme_set(theme_default()) to use the default bayesplot theme.</code></pre>
+<pre class="r"><code>library(ggplot2)
+library(bayesplot)</code></pre>
+<pre><code>## This is bayesplot version 1.6.0</code></pre>
+<pre><code>## - Online documentation and vignettes at mc-stan.org/bayesplot</code></pre>
+<pre><code>## - bayesplot theme set to bayesplot::theme_default()</code></pre>
+<pre><code>##    * Does _not_ affect other ggplot2 plots</code></pre>
+<pre><code>##    * See ?bayesplot_theme_set for details on theme setting</code></pre>
+<pre class="r"><code>library(tidyverse)</code></pre>
+<pre><code>## -- Attaching packages --------------------------------------- tidyverse 1.2.1 --</code></pre>
+<pre><code>## v tibble  1.4.2     v purrr   0.2.5
+## v tidyr   0.8.2     v dplyr   0.7.8
+## v readr   1.2.1     v stringr 1.3.1
+## v tibble  1.4.2     v forcats 0.3.0</code></pre>
+<pre><code>## -- Conflicts ------------------------------------------ tidyverse_conflicts() --
+## x dplyr::filter() masks stats::filter()
+## x dplyr::lag()    masks stats::lag()</code></pre>
+<pre class="r"><code>library(kableExtra)</code></pre>
 <pre class="r"><code>d &lt;- read.delim(url(&quot;https://raw.githubusercontent.com/philipparnamets/mlm-workshop/master/data/d_export.txt&quot;))</code></pre>
 <pre class="r"><code>summary(d)</code></pre>
 <pre><code>##     Subject         Stimuli       Trustworthy     Face_trust   

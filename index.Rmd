@@ -2,7 +2,10 @@
 title: "mlm-workshop"
 author: "Philip"
 date: "1 december 2018"
-output: html_document
+output: 
+ html_document:
+  toc: true
+  toc_depth: 2
 ---
 
 ```{r setup, include=FALSE}
