@@ -5,14 +5,15 @@ date: "1 december 2018"
 output: 
  html_document:
   toc: true
-  toc_depth: 2
+  toc_depth: 1
+  toc_float: true
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r}
+```{r, message=F}
 library(brms)
 library(ggplot2)
 library(bayesplot)
