@@ -1,5 +1,8 @@
 ---
-title: "Advanced example"
+title: "mlm-workshop"
+author: "Philip"
+date: "1 december 2018"
+output: html_document
 ---
 
 ```{r setup, include=FALSE}

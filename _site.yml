@@ -1,0 +1,10 @@
+name: "mlm-workshop"
+navbar:
+ title: "x"
+ left:
+  - text: "Basic example"
+  - text: "Advanced example"
+output_dir: "docs"
+output:
+ html_document:
+  theme: cosmo
