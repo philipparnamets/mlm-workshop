@@ -10,3 +10,5 @@ output_dir: "docs"
 output:
  html_document:
   theme: cosmo
+  toc: true
+  toc_depth: 2
