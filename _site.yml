@@ -3,7 +3,9 @@ navbar:
  title: "x"
  left:
   - text: "Basic example"
+    href : index.html
   - text: "Advanced example"
+    href: teting.html
 output_dir: "docs"
 output:
  html_document:
