@@ -9,94 +9,94 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-Begin by loading the packages we are going to need:
-
-```{r packages}
+```{r}
 library(brms)
 library(ggplot2)
+library(bayesplot)
+library(tidyverse)
+library(kableExtra)
 ```
 
 
-#The data
-
-The data comes from a trust learning experiment and is a subset of 20 of the participants. 
-
-```{r}
+```{r load data}
 d <- read.delim(url("https://raw.githubusercontent.com/philipparnamets/mlm-workshop/master/data/d_export.txt"))
 ```
-
-##Visualization and data preparation
 
 ```{r}
 summary(d)
 ```
 
-The goal of the analysis will be to see if there are differences in response times depending if the partner comes from a trustworthy or untrustworthy group. We also know how trustworthy each partners's facehas been rated to be.
+Data comes from a trust learning experiment and represents a subset of 30 participants. Each participants did 30 trials with social partners from a trustworthy group and 30 trials with social partners from an untrustworthy group. 
 
-###Response times
+The aim of the analysis will be to understand if participant **response times differ between groups**.
+
+
+#Data visualization and preparation
+
+##Relationship between RT and Trustworthiness
 
 ```{r}
-#histogram over response times
-with(d, hist(RT, density = 20, breaks = 135))
+# create factor
+d$Trustworthy_fac <- factor(d$Trustworthy, labels = c("Untrustworthy",
+                                                      "Trustworthy"))
+
+# summary table
+d %>% group_by(Trustworthy_fac) %>%
+  summarise(Average = mean(RT),
+            Median = median(RT),
+            SD = sd(RT),
+            SE = SD/sqrt(n())) %>%
+  kable(.) %>%
+  kable_styling(., bootstrap_options = c("striped", "responsive", "condensed"),
+                full_width = F)
 ```
 
-Unsurprisingly rather right-skewed. There are different ways of dealing with this such as fitting ex-Gaussian distributions. For this example we will just log transform the data to make it more approximately normal.
-
 ```{r}
-#log-transform
-d$RT_log <- log(d$RT)
-with(d, hist(RT_log, density = 20, breaks = 135))
-```
-
-
-###Trustworthiness ratings
-
-```{r}
-#histogram over trust ratings
-with(d, hist(Face_trust, density = 20))
-```
-
-We have some variation in the ratings, which is nice. We will however want to scale the variable to aid model convergence and interpretability.
-
-```{r}
-#scale ratings
-d$Face_trust_s <- scale(d$Face_trust)
-```
-
-###Plot the relationship between Trustworthiness and RT
-
-```{r}
-d$Trustworthy_f <- factor(d$Trustworthy, 
-                          labels = c("Untrustworthy",
-                                     "Trustworthy"))
+# plot
 ggplot(data = d) +
-  aes(x = Trustworthy_f, y = RT) +
-  geom_violin()
-  
-  
+  aes(x = Trustworthy_fac, y = RT, 
+      fill = Trustworthy_fac) +
+  geom_violin() +
+  geom_boxplot(fill="gray", 
+               notch = T ,
+               width = 0.4) 
+
 ```
 
 
-## Testing a quick fit of brms
-```{r}
-library(brms)
-```
-
-```{r}
-x <-  seq(1:100)
-y <- x + rnorm(100,0,10)
-d <- data.frame(x=x, y=y)
-plot(x,y)
-```
-
-```{r, results='hide', cache=T}
-fit <- brm(y ~ x, 
-           data = d,
-           cores = 3, chains = 3)
-```
+Lot's of outliers, let's filter the data at 10s, which seems to be plenty to make a response anyways.. 
 
 ```{r}
-summary(fit)
+# plot
+d %>% filter(RT<10) %>%
+ggplot(data = .) +
+  aes(x = Trustworthy_fac, y = RT, 
+      fill = Trustworthy_fac) +
+  geom_violin() +
+  geom_boxplot(fill="gray", 
+               notch = T ,
+               width = 0.4) 
+
+```
+
+Response time data are skewed:
+
+```{r}
+ggplot(d) +
+  aes(RT) +
+  geom_histogram(binwidth = 0.25)
+```
+
+One way of dealing with this is log-transforming the data.
+
+```{r}
+# log transform
+d$RT_log <- log(d$RT)
+
+#plot 
+ggplot(d) +
+  aes(RT_log) +
+  geom_histogram(binwidth = 0.1)
 ```
 
 

@@ -1,6 +1,6 @@
 name: "mlm-workshop"
 navbar:
- title: "x"
+ title: "MLM-workshop"
  left:
   - text: "Basic example"
     href : index.html
