@@ -5,7 +5,7 @@ date: "1 december 2018"
 output: 
  html_document:
   toc: true
-  toc_depth: 1
+  toc_depth: 2
   toc_float: true
 ---
 
@@ -101,6 +101,22 @@ d$RT_log <- log(d$RT)
 ggplot(d) +
   aes(RT_log) +
   geom_histogram(binwidth = 0.1)
+```
+
+
+##Face trustworthiness
+
+The variable *Face_trust* captures how trustworthy the face of the partner has been rated to be. 
+
+```{r}
+ggplot(d) +
+  aes(Face_trust) +
+  geom_histogram(binwidth = 0.1)
+```
+
+```{r}
+# scale variable
+d$Face_trust_s <- scale(d$Face_trust)
 ```
 
 
