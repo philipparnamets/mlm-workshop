@@ -13,12 +13,21 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+#Load data and packages
+
 ```{r, message=F}
 library(brms)
 library(ggplot2)
 library(bayesplot)
 library(tidyverse)
 library(kableExtra)
+library(bayesplot)
+library(brmstools)
+```
+
+```{r}
+#set up number of cores to use for fitting
+n_cores <- parallel::detectCores()-1
 ```
 
 
@@ -51,7 +60,7 @@ d %>% group_by(Trustworthy_fac) %>%
             SD = sd(RT),
             SE = SD/sqrt(n())) %>%
   kable(.) %>%
-  kable_styling(., bootstrap_options = c("striped", "responsive", "condensed"),
+  kable_styling(., bootstrap_options = c("striped", "condensed"),
                 full_width = F)
 ```
 
@@ -120,4 +129,334 @@ d$Face_trust_s <- scale(d$Face_trust)
 ```
 
 
+#Setting up the model
 
+There are three important components to fitting a model in *brms*:
+
+- Data
+- Model formula
+- Prior
+
+We have already set up our data.
+
+##Model formula
+
+*brms* uses the same syntax as *lme4*, which simplifies the transition. 
+
+```{r}
+
+ff <- 
+  bf(RT ~ 1 + Trustworthy + Face_trust_s + Trustworthy:Face_trust_s + 
+     (1 + Trustworthy + Face_trust_s + Trustworthy:Face_trust_s | Subject) +
+     (1 + Trustworthy + Face_trust_s + Trustworthy:Face_trust_s | Stimuli))
+
+```
+
+We want to estimate the effect of Trustworthiness on response times, while taking into account the facial features of the social partners and their interaction wtih Trustworthiness. Additionally, we want to allow all slopes and intercept **vary** within participants and stimuli. 
+
+##Priors
+
+The arguably most tricky bit when it comes to getting started with Bayesian modelling is setting and understanding priors. First we see what priors the model requires: 
+
+```{r}
+kable(get_prior(formula = ff, family = gaussian(),
+          data = d)) %>%
+  kable_styling(c("striped", "condensed"), full_width = F)
+```
+
+We begin by setting some weakly informative priors.
+
+```{r}
+pp <- c(set_prior("normal(0,1)", class = "b"), #this is for the population average slopes
+        set_prior("normal(0,10)", class = "sd", group = "Subject"),
+        set_prior("normal(0,5)", class = "sd", group = "Stimuli"),
+        set_prior("normal(0,5)", class = "sigma"),
+        set_prior("lkj(3)", class = "cor", group = "Stimuli"),
+        set_prior("lkj(3)", class = "cor", group = "Subject"))
+```
+
+
+```{r, results='hide', cache=T}
+fit_rt <- brm(formula = ff, 
+              data = d, family = gaussian(),
+              prior = pp,
+              chains = 6, cores = 3,
+              iter = 2e3, warmup = 1e3,
+              sample_prior = "only")
+```
+
+```{r}
+rt1_prior <- marginal_effects(fit_rt, re_formula = NULL,
+                              method = "predict")
+plot(rt1_prior, ask = F)
+```
+
+Let's make some changes.
+
+```{r}
+pp <- c(set_prior("normal(2,5)", class = "Intercept"),
+        set_prior("normal(0,1)", class = "b"), #this is for the population average slopes
+        set_prior("normal(0,1)", class = "sd", group = "Subject"),
+        set_prior("normal(0,1)", class = "sd", group = "Stimuli"),
+        set_prior("normal(0,5)", class = "sigma"),
+        set_prior("lkj(3)", class = "cor", group = "Stimuli"),
+        set_prior("lkj(3)", class = "cor", group = "Subject"))
+```
+
+
+```{r, results='hide', cache=T}
+fit_rt2 <- brm(formula = ff, 
+              data = d, family = gaussian(),
+              prior = pp,
+              chains = 6, cores = 3,
+              iter = 2e3, warmup = 1e3,
+              sample_prior = "only")
+```
+
+
+```{r}
+rt2_prior <- marginal_effects(fit_rt2, re_formula = NULL,
+                              method = "predict")
+plot(rt2_prior, ask = F)
+```
+
+The model's priors now covers a much more reasonable range of values.
+
+#Fitting the model
+
+Having gone through these steps, sampling from the model is straightforward:
+
+```{r, results='hide', cache=T}
+mod_rt2 <-  brm(formula = ff, 
+              data = d, family = gaussian(),
+              prior = pp,
+              chains = 6, cores = 3,
+              iter = 2e3, warmup = 1e3,
+              sample_prior = "yes",
+              control = list(adapt_delta = 0.8))
+```
+
+##Model diagnostics
+
+Stan (and brms) will warn you if the model is having some particular problems converging. In particular it will tell you if there are *divergent transitions*, which are caused by the model not being able to explore the full parameter space. This can be tricky to fix, but models with divergent transitions should not be trusted. Changing the priors, and changing some of the sampler's internal parameters can help - increasing adapt_delta over it's default (0.8). 
+
+Other diagnostic quantities to pay attention to are the number of effective samples and $\hat{R}$ values.
+
+Both are accessed from the model summary: 
+
+```{r}
+summary(mod_rt2)
+```
+
+But can also be visualized using the Bayesplot package.
+
+For $\hat{R}$ these should be approximately 1, and definitely no larger than 1.1.
+
+```{r}
+all_hats <- rhat(mod_rt2)
+color_scheme_set("red")
+mcmc_rhat_hist(all_hats)
+```
+
+Effective sample size is a measure of how well the model is approximating the posterior distribution of interest. If there are very few effective samples, the resulting posterior is less reliable. This might be due to autocorrelation in the samples. Typically you can sample your model for longer to get more effective samples out of it. 
+
+Here we see that some parameters have a lower ratio of effective samples than others, but none are lower than 0.1, which is a *heuristic* value for when we should really worry:
+
+```{r}
+neffs <- neff_ratio(mod_rt2)
+mcmc_neff_hist(neffs)
+```
+
+```{r}
+#here we can see which parameters were affected
+mcmc_neff(neffs[neffs<0.5]) + yaxis_text(hjust = 1)
+```
+
+If we had been worried about this, we might have wanted to plot the autocorrelation of, say, the intercept. We compare it with another parameter to see the difference: 
+
+```{r}
+post <- posterior_samples(mod_rt2, c("b_Intercept", "b_Trustworthy"))
+mcmc_acf(post[,1:2])
+```
+
+
+**If we had not been happy with the model diagnostics, we would refit the model before proceeding**
+
+#Working with the posterior
+
+The posterior samples reflect the outcome of the model fitting. We use this to further refine our understanding of the model and to hopefully learn something about the data that we are modelling. 
+
+##Posterior predictive checks
+
+The first thing is to see if the model is capturing relevant features of the data - in other words, if it plausibly is capturing the *underlying data generating process*. 
+
+```{r}
+pp_check(mod_rt2)
+```
+
+Unurprisingly, our gaussian model cannot capture the full distribution of the data. (But we kind of knew that already, so let's ignore it for now).
+
+Another way of seeing this is how the minimum and maximum predictions differ from those in the data:
+
+```{r}
+#make a matrix of posterior predictions
+y_pred <- predict(mod_rt2, 
+                  nsamples = 500, #500 samples per row of the original data frame
+                  summary = F) #if =TRUE, then we will get the mean and 95% CIs instead
+dim(y_pred)
+```
+
+```{r}
+#minimum value
+ppc_stat(y = d$RT, yrep = y_pred,
+         stat = "min",
+         binwidth = 0.05)
+```
+
+This reinforces what we knew from teh density overlay above.
+
+```{r}
+#maximum value
+ppc_stat(y = d$RT, yrep = y_pred,
+         stat = "max",
+         binwidth = 0.05)
+```
+
+This reinforces what we know from the prior-predictive checks, the model will not predict extremely large values. In this case, we would probably consider the response time of 30s to be an outlier, and not be concerned about this at all..
+
+
+We can also make posterior checks dependent on leves of a grouping variable. For example how good is the model at capturing the mean?
+
+```{r}
+ppc_stat_grouped(y = d$RT, 
+                 yrep = y_pred, 
+                 group = d$Trustworthy_fac,
+                 binwidth = 0.025)
+```
+
+Just like when we looked at the prior predictive checks, we can get the marginal predictions:
+
+```{r}
+plot(marginal_effects(mod_rt2), ask = F)
+```
+
+You could also make your own plot by using the *y_pred* values, since these are really the same thing. Here we show the full posterior distribution as a boxplot, the average RT in the data (black) and the average predictions (red dot).
+
+```{r}
+d$mu_pred <- apply(y_pred,2,mean)
+
+ggplot(d) + 
+  aes(x=Trustworthy_fac, y = mu_pred) + 
+  geom_boxplot(notch = T) +
+  stat_summary(mapping = aes(y=RT, x = Trustworthy_fac), 
+               fun.data = "mean_se", geom = "linerange", size = 2) + 
+  stat_summary(fun.data = "mean_se", colour = "red")
+
+```
+
+
+##Summarizing the model
+
+We have already seen the full model summary. Let's make some visualizations as well. 
+
+To do so we will extract samples from the model.
+
+```{r}
+post <- posterior_samples(mod_rt2, "^b") 
+# ^b is regular expression to select all the population level parameters (beginning with "b_"))
+```
+
+We can plot the coefficients:
+
+```{r}
+mcmc_intervals(post)
+```
+
+We are not particularly interested in the intercept, given how the model was set up, so lets omit it:
+
+```{r}
+mcmc_areas(post[,-1],
+           prob = 0.8,
+           prob_outer = 0.95)
+```
+
+Having fit a multi-level model we have access to lots of other parameters that we wouldn't have had otherwise. Let's a quick example. First, we extract the correlation estimates for the Subject level parameters. 
+
+```{r}
+post <- posterior_samples(mod_rt2, "^cor_Subject") #correlation parameters
+mcmc_areas(post,
+           prob = 0.8,
+           prob_outer = 0.95)
+```
+
+We see that a fairly large negative correlation between subjects' interecept and slopes of Trustworthiness. This would indicate that participants that are slower overall, also differentiate less between conditions in the speed of their responses. To see this, we can look at the estimates for the actual slopes for each participant.
+
+
+```{r}
+post <- posterior_samples(mod_rt2, "^r_Subject") # all Subject level parameters
+dim(post)  #120 parameters, 30 subject * 4 estimates
+```
+
+Here we plot the average slope, with lines indicating the uncertainty in the estimate (50% level)
+
+```{r}
+mu_slopes <- apply(post, 2, mean)
+mu_uncert <- apply(post, 2, function(x) quantile(x, c(0.25,.75)))
+
+plot(x = mu_slopes[1:30], y = mu_slopes[31:60],
+     xlab = "Intercept", ylab = "Effect of Trustworthiness",
+     pch = ".", cex = 5)
+abline(h=0, lty = 2)
+grid(col = "gray")
+segments(x0 = mu_slopes[1:30],
+         y0 = mu_uncert[1, 31:60],
+         y1 = mu_uncert[2, 31:60],
+         lwd = 1, col = "darkgray")
+segments(y0 = mu_slopes[31:60],
+         x0 = mu_uncert[1, 1:30],
+         x1 = mu_uncert[2, 1:30],
+         lwd = 1, col = "darkgray")
+```
+
+Group varying estimates are deviations from the average, population level estimate. So to understand this plot in terms of the actual effect implied we need to add the population level.
+
+```{r}
+mu_slopes <- apply(post, 2, mean)
+mu_uncert <- apply(post, 2, function(x) quantile(x, c(0.25,.75)))
+trust_av <- fixef(mod_rt2)[2,1]
+inter_av <- fixef(mod_rt2)[1,1]
+
+plot(x = mu_slopes[1:30]+inter_av, 
+     y = mu_slopes[31:60]+trust_av,
+     xlab = "Intercept", ylab = "Effect of Trustworthiness",
+     pch = ".", cex = 5)
+abline(h=0, lty = 2)
+grid(col = "gray")
+segments(x0 = mu_slopes[1:30]+inter_av,
+         y0 = mu_uncert[1, 31:60]+trust_av,
+         y1 = mu_uncert[2, 31:60]+trust_av,
+         lwd = 1, col = "darkgray")
+segments(y0 = mu_slopes[31:60]+trust_av,
+         x0 = mu_uncert[1, 1:30]+inter_av,
+         x1 = mu_uncert[2, 1:30]+inter_av,
+         lwd = 1, col = "darkgray")
+```
+
+
+From this plot we also see that for example some participants have a negative effect of Trustworthiness. We can plot the group-level average slopes together with population level slope to get a sense for this variation in relation to the average effect. 
+(note that this tool would be particularly useful if you are doing a "random effects" meta analysis)
+
+```{r}
+forest(mod_rt2, grouping = "Subject", pars = "Trustworthy")
+```
+
+
+
+
+##Inference
+
+Posterior probabilities
+
+HDI & ROPE
+
+Bayes Factors
