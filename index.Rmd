@@ -5,12 +5,13 @@ date: "1 december 2018"
 output: 
  html_document:
   toc: true
-  toc_depth: 2
+  toc_depth: 3
   toc_float: true
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+options(scipen = 0, digits = 2)
 ```
 
 #Load data and packages
@@ -21,8 +22,8 @@ library(ggplot2)
 library(bayesplot)
 library(tidyverse)
 library(kableExtra)
-library(bayesplot)
 library(brmstools)
+library(sjstats)
 ```
 
 ```{r}
@@ -131,13 +132,18 @@ d$Face_trust_s <- scale(d$Face_trust)
 
 #Setting up the model
 
-There are three important components to fitting a model in *brms*:
+There are four important components to fitting a model in *brms*:
 
 - Data
+- Likelihood
 - Model formula
 - Prior
 
 We have already set up our data.
+
+##Likelihood
+
+SAY SOMETHING MORE ABOUT THE LIKELIHOOD HERE
 
 ##Model formula
 
@@ -280,7 +286,7 @@ mcmc_acf(post[,1:2])
 ```
 
 
-**If we had not been happy with the model diagnostics, we would refit the model before proceeding**
+**>>>If we had not been happy with the model diagnostics, we would refit the model before proceeding<<<**
 
 #Working with the posterior
 
@@ -313,7 +319,7 @@ ppc_stat(y = d$RT, yrep = y_pred,
          binwidth = 0.05)
 ```
 
-This reinforces what we knew from teh density overlay above.
+This reinforces what we knew from the density overlay above.
 
 ```{r}
 #maximum value
@@ -443,7 +449,7 @@ segments(y0 = mu_slopes[31:60]+trust_av,
 ```
 
 
-From this plot we also see that for example some participants have a negative effect of Trustworthiness. We can plot the group-level average slopes together with population level slope to get a sense for this variation in relation to the average effect. 
+From this plot we also see that for example two participants have a positive effect of Trustworthiness. We can plot the group-level average slopes together with population level slope to get a sense for this variation in relation to the average effect. 
 (note that this tool would be particularly useful if you are doing a "random effects" meta analysis)
 
 ```{r}
@@ -451,12 +457,218 @@ forest(mod_rt2, grouping = "Subject", pars = "Trustworthy")
 ```
 
 
-
-
 ##Inference
 
-Posterior probabilities
+What conclusions can we draw from the model regarding the parameter estimates and the effect of Trustworthiness on response times?
 
-HDI & ROPE
+###Posterior probabilities
 
-Bayes Factors
+The most straightforward method is to assess the posterior distribution of the parameter of interest, in this case, the coefficient of trustworthiness. 
+
+For a typical two-sided inference, we can consider the posterior credible interval, for example the 97% interval, and see if this doesn't include 0:
+
+```{r}
+q_97 <- quantile(post$b_Trustworthy, c(0.015, 0.985))
+q_97
+```
+
+We can also calculate the posterior probability that the effect is less than 0:
+
+```{r}
+prob <- sum(post$b_Trustworthy<0)/length(post$b_Trustworthy)
+paste(prob*100,"% of samples are less than 0")
+```
+
+We can straightforwardly combine this information in a plot:
+
+```{r}
+post <- posterior_samples(mod_rt2, "^b")
+mcmc_hist(post, "b_Trustworthy", binwidth = 0.025) +
+  geom_vline(xintercept = 0, size = 1.5, linetype = "dashed") +
+  geom_segment(aes(x = q_97[1], xend = q_97[2], y = 5, yend = 5),
+               size = 1.5, colour = "blue") +
+  annotate("text", 
+           x = mean(q_97), y = 20,
+           label = paste("97% CI: [", round(q_97[1],2), "," , round(q_97[2],2), "]" ),
+           colour = "blue", fontface = 2) +
+  annotate("text",
+           x = -0.9, y = 300,
+           label = paste(prob*100,"% of samples \nare less than 0"),
+           fontface = 2)
+```
+
+###HDI & ROPE
+
+An alternative to quantile-based credible intervals is the HDI (Highest posterior Density Interval).  The HDI is constructed to be the narrowest range containg X% of the posterior samples. In many cases these will be the same (symmetric posteriors centered on the mode/median). John Kruschke has written a lot about the HDI & ROPE approach.
+
+To get HDI intervals:
+
+```{r}
+hdi(mod_rt2, prob= c(.89, .97))
+```
+
+The sjstats package also allows us to get a summary with HDIs:
+
+```{r}
+tidy_stan(mod_rt2)
+```
+
+We can use the HDIs just as the credible intervals in the previous section. But they come into their own when combined with ROPE-testing.  (ROPE = Region of Practical Equivalence).  The ROPE defines the ranges of parameter values that we consider to be equivalent to a null finding. We then compare the HDI to the ROPE to make a decision about the parameter. If the HDI excludes the parameter entirely, we reject the ROPE region. If the HDI is entirely within the ROPE, we accept the ROPE values. And otherwise we are undecidided.  (**BUT** We can still make probabilistic statements about our parameter!)
+
+Defining a ROPE is tricky, and will depend on knowledge about the effect of interest and the underlying theory. Here pre-registration can play a strong role. 
+
+For our example, let's say we consider effects smaller than 75ms as meaningless and equivalent to 0. (Of course, there is nothing that says that you have to have the same ROPEs for all parameters, but if you scaled the variables you likely will..)
+
+This tells us how much of the posterior is inside and outside the ROPE region. 
+
+```{r}
+rope(mod_rt2, rope = c(-0.075,0.075))
+```
+
+To get the full equivalence test:
+
+```{r}
+equi_test(mod_rt2, rope = c(-.075,.075))
+```
+
+Currently, these functions use 95% HDIs, but this hopefully will change in a future release. 
+
+###Bayes Factors
+
+Another method of inference is via Bayes Factors which quanitify the relative evidence in favor or against the null hypothesis. While it is possible to calculate Bayes Factors for entire models (see the *bridgesampling* (package)[https://cran.r-project.org/web/packages/bridgesampling/index.html]), we will look at a simpler method at the parameter level. This is the Savage-Dickey ratio, which simply is the ratio between the prior density and the posterior density at the test value for your hypothesis (0 for a typical null hypothesis).
+
+```{r}
+h <- hypothesis(mod_rt2, 
+                c("Trustworthy=0",
+                  "Face_trust_s=0",
+                  "Trustworthy:Face_trust_s=0"))
+kable(h$hypothesis) %>%
+  kable_styling(c("condensed", "striped"), full_width = F)
+```
+
+By default, the Bayes Factor (called Evid.Ratio here) is reported as evidence *for* the null, the $BF_{01}$. If we want the evidence against the null, $BF_{10}$, we simply take the reciprocal.
+
+```{r}
+bf_10 <- 1/h$hypothesis$Evid.Ratio
+h_new <- cbind(h$hypothesis, bf_10)
+names(h_new) <- c(names(h$hypothesis), "BF_10")
+kable(h_new) %>%
+  kable_styling(c("condensed", "striped"), full_width = F)
+```
+
+We can also visualize the hypothesis test: 
+
+```{r}
+plot(h)
+```
+
+**NOTE**, Bayes Factors are *very* sensitive to the priors, and it is easy to BF-hack 'marginal' results. Pre-registration is useful here as well.
+
+
+###Model comparison
+
+In some cases we are not interested in making direct inferences about the parameter values but are interested in competing models. This is particularly the case if we are worried about overfitting - since more parameters will always improvde the fit of the model. 
+
+```{r, results='hide', cache=T}
+mod_rt3 <- brm(RT ~ 1 + Trustworthy + Face_trust_s  + 
+     (1 + Trustworthy + Face_trust_s | Subject) +
+     (1 + Trustworthy + Face_trust_s | Stimuli),
+     prior = pp, family = gaussian(), data = d,
+     iter = 2e3, warmup = 1e3,
+     chains = 6, cores = n_cores)
+```
+
+The current gold standard for this kind of model comparison is approximate leave-one-out cross validation (LOO). Note that this can be computationally taxing. An alternative, also supported by brms, is WAIC - (Widely Applicable Information Criterion).
+
+```{r, warning = F, message = F, cache=T}
+#only run if you have time to wait a bit..
+loo2 <- loo(mod_rt2, cores = n_cores, reloo = T)
+loo3 <- loo(mod_rt3, cores = n_cores, reloo = T)
+```
+
+(For the purpose of this workshop we ignore the warning, but we really shouldn't be..)
+
+```{r}
+compare_ic(loo2, loo3)
+```
+
+There is no robust difference in predictive performance between the models. 
+
+There is a lot more to be said about LOO, and there is [great online documentation for it](http://mc-stan.org/loo/articles/index.html).
+
+#Refitting the model
+
+This is not a full analysis, but just a brief demonstration of how it could have looked if we had fitted the model to the log-transformed response times instead.
+
+
+```{r, results='hide', cache=T}
+ff <- 
+  bf(RT_log ~ 1 + Trustworthy + Face_trust_s + Trustworthy:Face_trust_s + 
+     (1 + Trustworthy + Face_trust_s + Trustworthy:Face_trust_s | Subject) +
+     (1 + Trustworthy + Face_trust_s + Trustworthy:Face_trust_s | Stimuli))
+
+
+pp <- c(set_prior("normal(0.4, .2)", class = "Intercept"),
+        set_prior("normal(0,.2)", class = "b"), #this is for the population average slopes
+        set_prior("normal(0,.2)", class = "sd", group = "Subject"),
+        set_prior("normal(0,.2)", class = "sd", group = "Stimuli"),
+        set_prior("normal(0,.5)", class = "sigma"),
+        set_prior("lkj(3)", class = "cor", group = "Stimuli"),
+        set_prior("lkj(3)", class = "cor", group = "Subject"))
+
+
+mod_rt_log <- brm(formula = ff, data = d,
+                  family = gaussian(), prior = pp,
+                  iter = 2e3, warmup = 1e3, 
+                  chains = 6, cores = n_cores)
+```
+
+
+
+```{r}
+pp_check(mod_rt_log)
+```
+
+
+```{r}
+#make a matrix of posterior predictions
+y_pred <- predict(mod_rt_log, 
+                  nsamples = 500, #500 samples per row of the original data frame
+                  summary = F) #if =TRUE, then we will get the mean and 95% CIs instead
+```
+
+```{r}
+#minimum value
+ppc_stat(y = d$RT_log, yrep = y_pred,
+         stat = "min",
+         binwidth = 0.025)
+```
+
+
+```{r}
+#maximum value
+ppc_stat(y = d$RT_log, yrep = y_pred,
+         stat = "max",
+         binwidth = 0.025)
+```
+
+```{r}
+ppc_stat_grouped(y = d$RT_log, 
+                 yrep = y_pred, 
+                 group = d$Trustworthy_fac,
+                 binwidth = 0.005)
+```
+
+
+We can see the the posterior predidictions are better than before. The downside is that now all our predictors are on a log scale:
+
+```{r}
+post <- posterior_samples(mod_rt_log, "^b")
+mcmc_areas(post,
+           prob = 0.8,
+           prob_outer = 0.95)
+
+```
+
+
+Alternatively we would have changed the likelihood used in the model, using a distribution known to be very good with human response times like the ex-Gaussian (supported by *brms*). See [Heathcote, Popiel & Mewhort, 1991](http://www.tascl.org/uploads/4/9/3/3/49339445/4_.pdf) .

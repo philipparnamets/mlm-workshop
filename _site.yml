@@ -6,6 +6,8 @@ navbar:
     href : index.html
   - text: "Advanced example"
     href: teting.html
+  - text: "Further reading"
+    href: further.html
 output_dir: "docs"
 output:
  html_document:

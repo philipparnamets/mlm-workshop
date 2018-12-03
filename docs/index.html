@@ -181,7 +181,7 @@ $(document).ready(function ()  {
 
     // establish options
     var options = {
-      selectors: "h1,h2",
+      selectors: "h1,h2,h3",
       theme: "bootstrap3",
       context: '.toc-content',
       hashGenerator: function (text) {
@@ -286,6 +286,9 @@ div.tocify {
 <li>
   <a href="teting.html">Advanced example</a>
 </li>
+<li>
+  <a href="further.html">Further reading</a>
+</li>
       </ul>
       <ul class="nav navbar-nav navbar-right">
         
@@ -312,26 +315,19 @@ library(ggplot2)
 library(bayesplot)
 library(tidyverse)
 library(kableExtra)
-library(bayesplot)
-library(brmstools)</code></pre>
+library(brmstools)
+library(sjstats)</code></pre>
 <pre class="r"><code>#set up number of cores to use for fitting
 n_cores &lt;- parallel::detectCores()-1</code></pre>
 <pre class="r"><code>d &lt;- read.delim(url(&quot;https://raw.githubusercontent.com/philipparnamets/mlm-workshop/master/data/d_export.txt&quot;))</code></pre>
 <pre class="r"><code>summary(d)</code></pre>
-<pre><code>##     Subject         Stimuli       Trustworthy     Face_trust   
-##  Min.   :13712   Min.   : 1.00   Min.   :-0.5   Min.   :2.806  
-##  1st Qu.:14293   1st Qu.:16.00   1st Qu.:-0.5   1st Qu.:3.168  
-##  Median :14767   Median :32.00   Median : 0.0   Median :3.360  
-##  Mean   :15343   Mean   :32.45   Mean   : 0.0   Mean   :3.411  
-##  3rd Qu.:16425   3rd Qu.:49.00   3rd Qu.: 0.5   3rd Qu.:3.593  
-##  Max.   :17668   Max.   :64.00   Max.   : 0.5   Max.   :4.214  
-##        RT         
-##  Min.   : 0.3360  
-##  1st Qu.: 0.9178  
-##  Median : 1.3837  
-##  Mean   : 2.0278  
-##  3rd Qu.: 2.3334  
-##  Max.   :32.7068</code></pre>
+<pre><code>##     Subject         Stimuli    Trustworthy     Face_trust        RT    
+##  Min.   :13712   Min.   : 1   Min.   :-0.5   Min.   :2.8   Min.   : 0  
+##  1st Qu.:14293   1st Qu.:16   1st Qu.:-0.5   1st Qu.:3.2   1st Qu.: 1  
+##  Median :14767   Median :32   Median : 0.0   Median :3.4   Median : 1  
+##  Mean   :15343   Mean   :32   Mean   : 0.0   Mean   :3.4   Mean   : 2  
+##  3rd Qu.:16425   3rd Qu.:49   3rd Qu.: 0.5   3rd Qu.:3.6   3rd Qu.: 2  
+##  Max.   :17668   Max.   :64   Max.   : 0.5   Max.   :4.2   Max.   :33</code></pre>
 <p>Data comes from a trust learning experiment and represents a subset of 30 participants. Each participants did 30 trials with social partners from a trustworthy group and 30 trials with social partners from an untrustworthy group.</p>
 <p>The aim of the analysis will be to understand if participant <strong>response times differ between groups</strong>.</p>
 </div>
@@ -378,16 +374,16 @@ SE
 Untrustworthy
 </td>
 <td style="text-align:right;">
-2.204422
+2.2
 </td>
 <td style="text-align:right;">
-1.498379
+1.5
 </td>
 <td style="text-align:right;">
-2.369325
+2.4
 </td>
 <td style="text-align:right;">
-0.0789775
+0.08
 </td>
 </tr>
 <tr>
@@ -395,16 +391,16 @@ Untrustworthy
 Trustworthy
 </td>
 <td style="text-align:right;">
-1.851272
+1.8
 </td>
 <td style="text-align:right;">
-1.280572
+1.3
 </td>
 <td style="text-align:right;">
-1.815688
+1.8
 </td>
 <td style="text-align:right;">
-0.0605229
+0.06
 </td>
 </tr>
 </tbody>
@@ -457,13 +453,18 @@ d$Face_trust_s &lt;- scale(d$Face_trust)</code></pre>
 </div>
 <div id="setting-up-the-model" class="section level1">
 <h1>Setting up the model</h1>
-<p>There are three important components to fitting a model in <em>brms</em>:</p>
+<p>There are four important components to fitting a model in <em>brms</em>:</p>
 <ul>
 <li>Data</li>
+<li>Likelihood</li>
 <li>Model formula</li>
 <li>Prior</li>
 </ul>
 <p>We have already set up our data.</p>
+<div id="likelihood" class="section level2">
+<h2>Likelihood</h2>
+<p>SAY SOMETHING MORE ABOUT THE LIKELIHOOD HERE</p>
+</div>
 <div id="model-formula" class="section level2">
 <h2>Model formula</h2>
 <p><em>brms</em> uses the same syntax as <em>lme4</em>, which simplifies the transition.</p>
@@ -955,8 +956,10 @@ plot(rt1_prior, ask = F)</code></pre>
               iter = 2e3, warmup = 1e3,
               sample_prior = &quot;only&quot;)</code></pre>
 <pre><code>## Compiling the C++ model</code></pre>
-<pre><code>## recompiling to avoid crashing R session</code></pre>
 <pre><code>## Start sampling</code></pre>
+<pre><code>## Warning: There were 4 transitions after warmup that exceeded the maximum treedepth. Increase max_treedepth above 10. See
+## http://mc-stan.org/misc/warnings.html#maximum-treedepth-exceeded</code></pre>
+<pre><code>## Warning: Examine the pairs() plot to diagnose sampling problems</code></pre>
 <pre class="r"><code>rt2_prior &lt;- marginal_effects(fit_rt2, re_formula = NULL,
                               method = &quot;predict&quot;)
 plot(rt2_prior, ask = F)</code></pre>
@@ -975,7 +978,6 @@ plot(rt2_prior, ask = F)</code></pre>
               sample_prior = &quot;yes&quot;,
               control = list(adapt_delta = 0.8))</code></pre>
 <pre><code>## Compiling the C++ model</code></pre>
-<pre><code>## recompiling to avoid crashing R session</code></pre>
 <pre><code>## Start sampling</code></pre>
 <div id="model-diagnostics" class="section level2">
 <h2>Model diagnostics</h2>
@@ -992,41 +994,68 @@ plot(rt2_prior, ask = F)</code></pre>
 ## 
 ## Group-Level Effects: 
 ## ~Stimuli (Number of levels: 64) 
-##                                            Estimate Est.Error l-95% CI u-95% CI Eff.Sample Rhat
-## sd(Intercept)                                  0.08      0.06     0.00     0.21       3435 1.00
-## sd(Trustworthy)                                0.17      0.12     0.01     0.45       2793 1.00
-## sd(Face_trust_s)                               0.10      0.06     0.00     0.23       2728 1.00
-## sd(Trustworthy:Face_trust_s)                   0.24      0.14     0.02     0.53       2365 1.00
-## cor(Intercept,Trustworthy)                    -0.05      0.33    -0.66     0.60       7718 1.00
-## cor(Intercept,Face_trust_s)                    0.04      0.33    -0.61     0.66       7631 1.00
-## cor(Trustworthy,Face_trust_s)                  0.06      0.33    -0.59     0.68       6541 1.00
-## cor(Intercept,Trustworthy:Face_trust_s)        0.07      0.34    -0.60     0.68       4968 1.00
-## cor(Trustworthy,Trustworthy:Face_trust_s)      0.03      0.33    -0.62     0.66       6314 1.00
-## cor(Face_trust_s,Trustworthy:Face_trust_s)     0.08      0.32    -0.56     0.67       5830 1.00
+##                                            Estimate Est.Error l-95% CI
+## sd(Intercept)                                  0.08      0.06     0.00
+## sd(Trustworthy)                                0.17      0.13     0.01
+## sd(Face_trust_s)                               0.10      0.06     0.01
+## sd(Trustworthy:Face_trust_s)                   0.24      0.13     0.02
+## cor(Intercept,Trustworthy)                    -0.05      0.33    -0.68
+## cor(Intercept,Face_trust_s)                    0.05      0.33    -0.58
+## cor(Trustworthy,Face_trust_s)                  0.07      0.33    -0.58
+## cor(Intercept,Trustworthy:Face_trust_s)        0.07      0.34    -0.59
+## cor(Trustworthy,Trustworthy:Face_trust_s)      0.01      0.33    -0.62
+## cor(Face_trust_s,Trustworthy:Face_trust_s)     0.08      0.33    -0.56
+##                                            u-95% CI Eff.Sample Rhat
+## sd(Intercept)                                  0.21       3064 1.00
+## sd(Trustworthy)                                0.46       2728 1.00
+## sd(Face_trust_s)                               0.22       3138 1.00
+## sd(Trustworthy:Face_trust_s)                   0.52       2811 1.00
+## cor(Intercept,Trustworthy)                     0.60       7161 1.00
+## cor(Intercept,Face_trust_s)                    0.65       6687 1.00
+## cor(Trustworthy,Face_trust_s)                  0.67       6133 1.00
+## cor(Intercept,Trustworthy:Face_trust_s)        0.67       6356 1.00
+## cor(Trustworthy,Trustworthy:Face_trust_s)      0.64       6097 1.00
+## cor(Face_trust_s,Trustworthy:Face_trust_s)     0.68       5707 1.00
 ## 
 ## ~Subject (Number of levels: 30) 
-##                                            Estimate Est.Error l-95% CI u-95% CI Eff.Sample Rhat
-## sd(Intercept)                                  0.87      0.13     0.66     1.15       1926 1.00
-## sd(Trustworthy)                                0.54      0.14     0.30     0.84       3041 1.00
-## sd(Face_trust_s)                               0.22      0.08     0.05     0.37       1566 1.00
-## sd(Trustworthy:Face_trust_s)                   0.15      0.10     0.01     0.39       3960 1.00
-## cor(Intercept,Trustworthy)                    -0.40      0.19    -0.73     0.01       5737 1.00
-## cor(Intercept,Face_trust_s)                    0.02      0.23    -0.43     0.47       6954 1.00
-## cor(Trustworthy,Face_trust_s)                 -0.15      0.27    -0.63     0.39       4415 1.00
-## cor(Intercept,Trustworthy:Face_trust_s)        0.19      0.31    -0.46     0.73      10088 1.00
-## cor(Trustworthy,Trustworthy:Face_trust_s)     -0.03      0.32    -0.63     0.58       9699 1.00
-## cor(Face_trust_s,Trustworthy:Face_trust_s)    -0.03      0.32    -0.64     0.60       9250 1.00
+##                                            Estimate Est.Error l-95% CI
+## sd(Intercept)                                  0.87      0.13     0.66
+## sd(Trustworthy)                                0.53      0.14     0.28
+## sd(Face_trust_s)                               0.22      0.08     0.06
+## sd(Trustworthy:Face_trust_s)                   0.14      0.10     0.01
+## cor(Intercept,Trustworthy)                    -0.40      0.19    -0.74
+## cor(Intercept,Face_trust_s)                    0.02      0.23    -0.43
+## cor(Trustworthy,Face_trust_s)                 -0.15      0.26    -0.62
+## cor(Intercept,Trustworthy:Face_trust_s)        0.18      0.32    -0.49
+## cor(Trustworthy,Trustworthy:Face_trust_s)     -0.03      0.32    -0.63
+## cor(Face_trust_s,Trustworthy:Face_trust_s)    -0.02      0.32    -0.64
+##                                            u-95% CI Eff.Sample Rhat
+## sd(Intercept)                                  1.15       2062 1.00
+## sd(Trustworthy)                                0.82       3090 1.00
+## sd(Face_trust_s)                               0.38       1792 1.00
+## sd(Trustworthy:Face_trust_s)                   0.38       4218 1.00
+## cor(Intercept,Trustworthy)                     0.01       6135 1.00
+## cor(Intercept,Face_trust_s)                    0.48       6900 1.00
+## cor(Trustworthy,Face_trust_s)                  0.39       4569 1.00
+## cor(Intercept,Trustworthy:Face_trust_s)        0.74       8730 1.00
+## cor(Trustworthy,Trustworthy:Face_trust_s)      0.59       8743 1.00
+## cor(Face_trust_s,Trustworthy:Face_trust_s)     0.60       9148 1.00
 ## 
 ## Population-Level Effects: 
-##                          Estimate Est.Error l-95% CI u-95% CI Eff.Sample Rhat
-## Intercept                    2.03      0.17     1.69     2.36       1112 1.00
-## Trustworthy                 -0.36      0.14    -0.64    -0.09       4699 1.00
-## Face_trust_s                 0.01      0.07    -0.13     0.14       6320 1.00
-## Trustworthy:Face_trust_s     0.14      0.12    -0.09     0.37       7837 1.00
+##                          Estimate Est.Error l-95% CI u-95% CI Eff.Sample
+## Intercept                    2.02      0.17     1.69     2.35       1465
+## Trustworthy                 -0.36      0.14    -0.64    -0.08       4304
+## Face_trust_s                 0.01      0.07    -0.13     0.13       6237
+## Trustworthy:Face_trust_s     0.13      0.11    -0.09     0.35       7996
+##                          Rhat
+## Intercept                1.00
+## Trustworthy              1.00
+## Face_trust_s             1.00
+## Trustworthy:Face_trust_s 1.00
 ## 
 ## Family Specific Parameters: 
 ##       Estimate Est.Error l-95% CI u-95% CI Eff.Sample Rhat
-## sigma     1.90      0.03     1.84     1.97       9173 1.00
+## sigma     1.90      0.03     1.84     1.97       9716 1.00
 ## 
 ## Samples were drawn using sampling(NUTS). For each parameter, Eff.Sample 
 ## is a crude measure of effective sample size, and Rhat is the potential 
@@ -1051,7 +1080,7 @@ mcmc_neff(neffs[neffs&lt;0.5]) + yaxis_text(hjust = 1)</code></pre>
 <pre class="r"><code>post &lt;- posterior_samples(mod_rt2, c(&quot;b_Intercept&quot;, &quot;b_Trustworthy&quot;))
 mcmc_acf(post[,1:2])</code></pre>
 <p><img src="index_files/figure-html/unnamed-chunk-24-1.png" width="672" /></p>
-<p><strong>If we had not been happy with the model diagnostics, we would refit the model before proceeding</strong></p>
+<p><strong>&gt;&gt;&gt;If we had not been happy with the model diagnostics, we would refit the model before proceeding&lt;&lt;&lt;</strong></p>
 </div>
 </div>
 <div id="working-with-the-posterior" class="section level1">
@@ -1076,7 +1105,7 @@ ppc_stat(y = d$RT, yrep = y_pred,
          stat = &quot;min&quot;,
          binwidth = 0.05)</code></pre>
 <p><img src="index_files/figure-html/unnamed-chunk-27-1.png" width="672" /></p>
-<p>This reinforces what we knew from teh density overlay above.</p>
+<p>This reinforces what we knew from the density overlay above.</p>
 <pre class="r"><code>#maximum value
 ppc_stat(y = d$RT, yrep = y_pred,
          stat = &quot;max&quot;,
@@ -1166,17 +1195,431 @@ segments(y0 = mu_slopes[31:60]+trust_av,
          x1 = mu_uncert[2, 1:30]+inter_av,
          lwd = 1, col = &quot;darkgray&quot;)</code></pre>
 <p><img src="index_files/figure-html/unnamed-chunk-38-1.png" width="672" /></p>
-<p>From this plot we also see that for example some participants have a negative effect of Trustworthiness. We can plot the group-level average slopes together with population level slope to get a sense for this variation in relation to the average effect. (note that this tool would be particularly useful if you are doing a “random effects” meta analysis)</p>
+<p>From this plot we also see that for example two participants have a positive effect of Trustworthiness. We can plot the group-level average slopes together with population level slope to get a sense for this variation in relation to the average effect. (note that this tool would be particularly useful if you are doing a “random effects” meta analysis)</p>
 <pre class="r"><code>forest(mod_rt2, grouping = &quot;Subject&quot;, pars = &quot;Trustworthy&quot;)</code></pre>
 <pre><code>## Picking joint bandwidth of 0.0553</code></pre>
 <p><img src="index_files/figure-html/unnamed-chunk-39-1.png" width="672" /></p>
 </div>
 <div id="inference" class="section level2">
 <h2>Inference</h2>
-<p>Posterior probabilities</p>
-<p>HDI &amp; ROPE</p>
-<p>Bayes Factors</p>
+<p>What conclusions can we draw from the model regarding the parameter estimates and the effect of Trustworthiness on response times?</p>
+<div id="posterior-probabilities" class="section level3">
+<h3>Posterior probabilities</h3>
+<p>The most straightforward method is to assess the posterior distribution of the parameter of interest, in this case, the coefficient of trustworthiness.</p>
+<p>For a typical two-sided inference, we can consider the posterior credible interval, for example the 97% interval, and see if this doesn’t include 0:</p>
+<pre class="r"><code>q_97 &lt;- quantile(post$b_Trustworthy, c(0.015, 0.985))
+q_97</code></pre>
+<pre><code>## 1.5%  98% 
+##   NA   NA</code></pre>
+<p>We can also calculate the posterior probability that the effect is less than 0:</p>
+<pre class="r"><code>prob &lt;- sum(post$b_Trustworthy&lt;0)/length(post$b_Trustworthy)
+paste(prob*100,&quot;% of samples are less than 0&quot;)</code></pre>
+<pre><code>## [1] &quot;NaN % of samples are less than 0&quot;</code></pre>
+<p>We can straightforwardly combine this information in a plot:</p>
+<pre class="r"><code>post &lt;- posterior_samples(mod_rt2, &quot;^b&quot;)
+mcmc_hist(post, &quot;b_Trustworthy&quot;, binwidth = 0.025) +
+  geom_vline(xintercept = 0, size = 1.5, linetype = &quot;dashed&quot;) +
+  geom_segment(aes(x = q_97[1], xend = q_97[2], y = 5, yend = 5),
+               size = 1.5, colour = &quot;blue&quot;) +
+  annotate(&quot;text&quot;, 
+           x = mean(q_97), y = 20,
+           label = paste(&quot;97% CI: [&quot;, round(q_97[1],2), &quot;,&quot; , round(q_97[2],2), &quot;]&quot; ),
+           colour = &quot;blue&quot;, fontface = 2) +
+  annotate(&quot;text&quot;,
+           x = -0.9, y = 300,
+           label = paste(prob*100,&quot;% of samples \nare less than 0&quot;),
+           fontface = 2)</code></pre>
+<pre><code>## Warning: Removed 6000 rows containing missing values (geom_segment).</code></pre>
+<pre><code>## Warning: Removed 1 rows containing missing values (geom_text).</code></pre>
+<p><img src="index_files/figure-html/unnamed-chunk-42-1.png" width="672" /></p>
 </div>
+<div id="hdi-rope" class="section level3">
+<h3>HDI &amp; ROPE</h3>
+<p>An alternative to quantile-based credible intervals is the HDI (Highest posterior Density Interval). The HDI is constructed to be the narrowest range containg X% of the posterior samples. In many cases these will be the same (symmetric posteriors centered on the mode/median). John Kruschke has written a lot about the HDI &amp; ROPE approach.</p>
+<p>To get HDI intervals:</p>
+<pre class="r"><code>hdi(mod_rt2, prob= c(.89, .97))</code></pre>
+<pre><code>## 
+## # Highest Density Interval
+## 
+##                                  HDI(89%)      HDI(97%)
+##  b_Intercept                [ 1.75  2.29] [ 1.66  2.40]
+##  b_Trustworthy              [-0.58 -0.13] [-0.66 -0.05]
+##  b_Face_trust_s             [-0.10  0.12] [-0.14  0.15]
+##  b_Trustworthy.Face_trust_s [-0.04  0.32] [-0.10  0.38]
+##  sigma                      [ 1.85  1.96] [ 1.83  1.97]</code></pre>
+<p>The sjstats package also allows us to get a summary with HDIs:</p>
+<pre class="r"><code>tidy_stan(mod_rt2)</code></pre>
+<pre><code>## 
+## # Summary Statistics of Stan-Model
+## 
+##                           estimate std.error      HDI(89%) ratio rhat mcse
+##  Intercept                    2.02      0.17 [ 1.75  2.29]  0.24    1    0
+##  Trustworthy                 -0.35      0.14 [-0.58 -0.13]  0.72    1    0
+##  Face_trust_s                 0.01      0.07 [-0.10  0.12]  1.04    1    0
+##  Trustworthy.Face_trust_s     0.13      0.11 [-0.04  0.32]  1.33    1    0
+##  sigma                        1.90      0.03 [ 1.85  1.96]  1.62    1    0</code></pre>
+<p>We can use the HDIs just as the credible intervals in the previous section. But they come into their own when combined with ROPE-testing. (ROPE = Region of Practical Equivalence). The ROPE defines the ranges of parameter values that we consider to be equivalent to a null finding. We then compare the HDI to the ROPE to make a decision about the parameter. If the HDI excludes the parameter entirely, we reject the ROPE region. If the HDI is entirely within the ROPE, we accept the ROPE values. And otherwise we are undecidided. (<strong>BUT</strong> We can still make probabilistic statements about our parameter!)</p>
+<p>Defining a ROPE is tricky, and will depend on knowledge about the effect of interest and the underlying theory. Here pre-registration can play a strong role.</p>
+<p>For our example, let’s say we consider effects smaller than 75ms as meaningless and equivalent to 0. (Of course, there is nothing that says that you have to have the same ROPEs for all parameters, but if you scaled the variables you likely will..)</p>
+<p>This tells us how much of the posterior is inside and outside the ROPE region.</p>
+<pre class="r"><code>rope(mod_rt2, rope = c(-0.075,0.075))</code></pre>
+<pre><code>## 
+## # Proportions of samples inside and outside the ROPE
+## 
+##                             inside outside
+##  b_Intercept                  0.0%  100.0%
+##  b_Trustworthy                2.0%   98.0%
+##  b_Face_trust_s              73.5%   26.5%
+##  b_Trustworthy.Face_trust_s  26.2%   73.8%
+##  sigma                        0.0%  100.0%</code></pre>
+<p>To get the full equivalence test:</p>
+<pre class="r"><code>equi_test(mod_rt2, rope = c(-.075,.075))</code></pre>
+<pre><code>## 
+## # Test for Practical Equivalence of Model Predictors
+## 
+##   Effect Size: 0.10
+##          ROPE: [-0.07 0.07]
+##       Samples: 6000
+## 
+##                                    H0 %inROPE      HDI(95%)
+##  b_Intercept (*)               reject    0.00 [ 1.69  2.35]
+##  b_Trustworthy                 reject    2.03 [-0.63 -0.08]
+##  b_Face_trust_s             undecided   73.52 [-0.12  0.13]
+##  b_Trustworthy.Face_trust_s undecided   26.18 [-0.10  0.34]
+##  sigma                         reject    0.00 [ 1.84  1.97]</code></pre>
+<pre><code>## 
+## (*) the number of effective samples may be insufficient for some parameters</code></pre>
+<p>Currently, these functions use 95% HDIs, but this hopefully will change in a future release.</p>
+</div>
+<div id="bayes-factors" class="section level3">
+<h3>Bayes Factors</h3>
+<p>Another method of inference is via Bayes Factors which quanitify the relative evidence in favor or against the null hypothesis. While it is possible to calculate Bayes Factors for entire models (see the <em>bridgesampling</em> (package)[<a href="https://cran.r-project.org/web/packages/bridgesampling/index.html" class="uri">https://cran.r-project.org/web/packages/bridgesampling/index.html</a>]), we will look at a simpler method at the parameter level. This is the Savage-Dickey ratio, which simply is the ratio between the prior density and the posterior density at the test value for your hypothesis (0 for a typical null hypothesis).</p>
+<pre class="r"><code>h &lt;- hypothesis(mod_rt2, 
+                c(&quot;Trustworthy=0&quot;,
+                  &quot;Face_trust_s=0&quot;,
+                  &quot;Trustworthy:Face_trust_s=0&quot;))
+kable(h$hypothesis) %&gt;%
+  kable_styling(c(&quot;condensed&quot;, &quot;striped&quot;), full_width = F)</code></pre>
+<table class="table table-condensed table-striped" style="width: auto !important; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:left;">
+Hypothesis
+</th>
+<th style="text-align:right;">
+Estimate
+</th>
+<th style="text-align:right;">
+Est.Error
+</th>
+<th style="text-align:right;">
+CI.Lower
+</th>
+<th style="text-align:right;">
+CI.Upper
+</th>
+<th style="text-align:right;">
+Evid.Ratio
+</th>
+<th style="text-align:right;">
+Post.Prob
+</th>
+<th style="text-align:left;">
+Star
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+(Trustworthy) = 0
+</td>
+<td style="text-align:right;">
+-0.36
+</td>
+<td style="text-align:right;">
+0.14
+</td>
+<td style="text-align:right;">
+-0.64
+</td>
+<td style="text-align:right;">
+-0.08
+</td>
+<td style="text-align:right;">
+0.29
+</td>
+<td style="text-align:right;">
+0.23
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+</tr>
+<tr>
+<td style="text-align:left;">
+(Face_trust_s) = 0
+</td>
+<td style="text-align:right;">
+0.01
+</td>
+<td style="text-align:right;">
+0.07
+</td>
+<td style="text-align:right;">
+-0.13
+</td>
+<td style="text-align:right;">
+0.13
+</td>
+<td style="text-align:right;">
+15.10
+</td>
+<td style="text-align:right;">
+0.94
+</td>
+<td style="text-align:left;">
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+(Trustworthy:Face_trust_s) = 0
+</td>
+<td style="text-align:right;">
+0.13
+</td>
+<td style="text-align:right;">
+0.11
+</td>
+<td style="text-align:right;">
+-0.09
+</td>
+<td style="text-align:right;">
+0.35
+</td>
+<td style="text-align:right;">
+4.33
+</td>
+<td style="text-align:right;">
+0.81
+</td>
+<td style="text-align:left;">
+</td>
+</tr>
+</tbody>
+</table></li>
+</ul>
+<p>By default, the Bayes Factor (called Evid.Ratio here) is reported as evidence <em>for</em> the null, the <span class="math inline">\(BF_{01}\)</span>. If we want the evidence against the null, <span class="math inline">\(BF_{10}\)</span>, we simply take the reciprocal.</p>
+<pre class="r"><code>bf_10 &lt;- 1/h$hypothesis$Evid.Ratio
+h_new &lt;- cbind(h$hypothesis, bf_10)
+names(h_new) &lt;- c(names(h$hypothesis), &quot;BF_10&quot;)
+kable(h_new) %&gt;%
+  kable_styling(c(&quot;condensed&quot;, &quot;striped&quot;), full_width = F)</code></pre>
+<table class="table table-condensed table-striped" style="width: auto !important; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:left;">
+Hypothesis
+</th>
+<th style="text-align:right;">
+Estimate
+</th>
+<th style="text-align:right;">
+Est.Error
+</th>
+<th style="text-align:right;">
+CI.Lower
+</th>
+<th style="text-align:right;">
+CI.Upper
+</th>
+<th style="text-align:right;">
+Evid.Ratio
+</th>
+<th style="text-align:right;">
+Post.Prob
+</th>
+<th style="text-align:left;">
+Star
+</th>
+<th style="text-align:right;">
+BF_10
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+(Trustworthy) = 0
+</td>
+<td style="text-align:right;">
+-0.36
+</td>
+<td style="text-align:right;">
+0.14
+</td>
+<td style="text-align:right;">
+-0.64
+</td>
+<td style="text-align:right;">
+-0.08
+</td>
+<td style="text-align:right;">
+0.29
+</td>
+<td style="text-align:right;">
+0.23
+</td>
+<td style="text-align:left;">
+<ul>
+<li></td>
+<td style="text-align:right;">
+3.44
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+(Face_trust_s) = 0
+</td>
+<td style="text-align:right;">
+0.01
+</td>
+<td style="text-align:right;">
+0.07
+</td>
+<td style="text-align:right;">
+-0.13
+</td>
+<td style="text-align:right;">
+0.13
+</td>
+<td style="text-align:right;">
+15.10
+</td>
+<td style="text-align:right;">
+0.94
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:right;">
+0.07
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+(Trustworthy:Face_trust_s) = 0
+</td>
+<td style="text-align:right;">
+0.13
+</td>
+<td style="text-align:right;">
+0.11
+</td>
+<td style="text-align:right;">
+-0.09
+</td>
+<td style="text-align:right;">
+0.35
+</td>
+<td style="text-align:right;">
+4.33
+</td>
+<td style="text-align:right;">
+0.81
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:right;">
+0.23
+</td>
+</tr>
+</tbody>
+</table></li>
+</ul>
+<p>We can also visualize the hypothesis test:</p>
+<pre class="r"><code>plot(h)</code></pre>
+<p><img src="index_files/figure-html/unnamed-chunk-49-1.png" width="672" /></p>
+<p><strong>NOTE</strong>, Bayes Factors are <em>very</em> sensitive to the priors, and it is easy to BF-hack ‘marginal’ results. Pre-registration is useful here as well.</p>
+</div>
+<div id="model-comparison" class="section level3">
+<h3>Model comparison</h3>
+<p>In some cases we are not interested in making direct inferences about the parameter values but are interested in competing models. This is particularly the case if we are worried about overfitting - since more parameters will always improvde the fit of the model.</p>
+<pre class="r"><code>mod_rt3 &lt;- brm(RT ~ 1 + Trustworthy + Face_trust_s  + 
+     (1 + Trustworthy + Face_trust_s | Subject) +
+     (1 + Trustworthy + Face_trust_s | Stimuli),
+     prior = pp, family = gaussian(), data = d,
+     iter = 2e3, warmup = 1e3,
+     chains = 6, cores = n_cores)</code></pre>
+<pre><code>## Compiling the C++ model</code></pre>
+<pre><code>## Start sampling</code></pre>
+<p>The current gold standard for this kind of model comparison is approximate leave-one-out cross validation (LOO). Note that this can be computationally taxing. An alternative, also supported by brms, is WAIC - (Widely Applicable Information Criterion).</p>
+<pre class="r"><code>#only run if you have time to wait a bit..
+loo2 &lt;- loo(mod_rt2, cores = n_cores, reloo = T)
+loo3 &lt;- loo(mod_rt3, cores = n_cores, reloo = T)</code></pre>
+<p>(For the purpose of this workshop we ignore the warning, but we really shouldn’t be..)</p>
+<pre class="r"><code>compare_ic(loo2, loo3)</code></pre>
+<pre><code>##                    LOOIC    SE
+## mod_rt2           7580.6 371.6
+## mod_rt3           7573.0 371.6
+## mod_rt2 - mod_rt3    7.6   4.8</code></pre>
+<p>There is no robust difference in predictive performance between the models.</p>
+<p>There is a lot more to be said about LOO, and there is <a href="http://mc-stan.org/loo/articles/index.html">great online documentation for it</a>.</p>
+</div>
+</div>
+</div>
+<div id="refitting-the-model" class="section level1">
+<h1>Refitting the model</h1>
+<p>This is not a full analysis, but just a brief demonstration of how it could have looked if we had fitted the model to the log-transformed response times instead.</p>
+<pre class="r"><code>ff &lt;- 
+  bf(RT_log ~ 1 + Trustworthy + Face_trust_s + Trustworthy:Face_trust_s + 
+     (1 + Trustworthy + Face_trust_s + Trustworthy:Face_trust_s | Subject) +
+     (1 + Trustworthy + Face_trust_s + Trustworthy:Face_trust_s | Stimuli))
+
+
+pp &lt;- c(set_prior(&quot;normal(0.4, .2)&quot;, class = &quot;Intercept&quot;),
+        set_prior(&quot;normal(0,.2)&quot;, class = &quot;b&quot;), #this is for the population average slopes
+        set_prior(&quot;normal(0,.2)&quot;, class = &quot;sd&quot;, group = &quot;Subject&quot;),
+        set_prior(&quot;normal(0,.2)&quot;, class = &quot;sd&quot;, group = &quot;Stimuli&quot;),
+        set_prior(&quot;normal(0,.5)&quot;, class = &quot;sigma&quot;),
+        set_prior(&quot;lkj(3)&quot;, class = &quot;cor&quot;, group = &quot;Stimuli&quot;),
+        set_prior(&quot;lkj(3)&quot;, class = &quot;cor&quot;, group = &quot;Subject&quot;))
+
+
+mod_rt_log &lt;- brm(formula = ff, data = d,
+                  family = gaussian(), prior = pp,
+                  iter = 2e3, warmup = 1e3, 
+                  chains = 6, cores = n_cores)</code></pre>
+<pre><code>## Compiling the C++ model</code></pre>
+<pre><code>## Start sampling</code></pre>
+<pre class="r"><code>pp_check(mod_rt_log)</code></pre>
+<pre><code>## Using 10 posterior samples for ppc type &#39;dens_overlay&#39; by default.</code></pre>
+<p><img src="index_files/figure-html/unnamed-chunk-54-1.png" width="672" /></p>
+<pre class="r"><code>#make a matrix of posterior predictions
+y_pred &lt;- predict(mod_rt_log, 
+                  nsamples = 500, #500 samples per row of the original data frame
+                  summary = F) #if =TRUE, then we will get the mean and 95% CIs instead</code></pre>
+<pre class="r"><code>#minimum value
+ppc_stat(y = d$RT_log, yrep = y_pred,
+         stat = &quot;min&quot;,
+         binwidth = 0.025)</code></pre>
+<p><img src="index_files/figure-html/unnamed-chunk-56-1.png" width="672" /></p>
+<pre class="r"><code>#maximum value
+ppc_stat(y = d$RT_log, yrep = y_pred,
+         stat = &quot;max&quot;,
+         binwidth = 0.025)</code></pre>
+<p><img src="index_files/figure-html/unnamed-chunk-57-1.png" width="672" /></p>
+<pre class="r"><code>ppc_stat_grouped(y = d$RT_log, 
+                 yrep = y_pred, 
+                 group = d$Trustworthy_fac,
+                 binwidth = 0.005)</code></pre>
+<p><img src="index_files/figure-html/unnamed-chunk-58-1.png" width="672" /></p>
+<p>We can see the the posterior predidictions are better than before. The downside is that now all our predictors are on a log scale:</p>
+<pre class="r"><code>post &lt;- posterior_samples(mod_rt_log, &quot;^b&quot;)
+mcmc_areas(post,
+           prob = 0.8,
+           prob_outer = 0.95)</code></pre>
+<p><img src="index_files/figure-html/unnamed-chunk-59-1.png" width="672" /></p>
+<p>Alternatively we would have changed the likelihood used in the model, using a distribution known to be very good with human response times like the ex-Gaussian (supported by <em>brms</em>). See <a href="http://www.tascl.org/uploads/4/9/3/3/49339445/4_.pdf">Heathcote, Popiel &amp; Mewhort, 1991</a> .</p>
 </div>
 
 
