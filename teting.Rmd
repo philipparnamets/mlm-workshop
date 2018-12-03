@@ -30,7 +30,7 @@ n_cores <- parallel::detectCores()-1
 ```
 
 ```{r}
-dat <- read.spss(paste("Steckler and Tracy Ginger Study 1.sav"),    
+dat <- read.spss(url("https://raw.githubusercontent.com/philipparnamets/mlm-workshop/master/data/Ginger_Study_1.sav"),    
                to.data.frame = T, use.value.labels = F)
 
 #add subject label
