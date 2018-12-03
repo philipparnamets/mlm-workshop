@@ -456,6 +456,26 @@ From this plot we also see that for example two participants have a positive eff
 forest(mod_rt2, grouping = "Subject", pars = "Trustworthy")
 ```
 
+###R2
+
+In some situations it can be interesting to calculate $R^2$. The quantity computed is a [Bayesian generalization](https://github.com/jgabry/bayes_R2/blob/master/bayes_R2.pdf) of the typical $R^2$.
+
+```{r}
+bayes_R2(mod_rt2)
+```
+
+As with all things Bayesian, we not only get a point estimate but also a distribution.
+
+
+```{r}
+# get full posterior 
+r2 <- data.frame(bayes_R2(mod_rt2, summary = F))
+
+ggplot(data =r2) +
+  aes(x = R2) +
+  geom_density(fill = "firebrick")
+```
+
 
 ##Inference
 
