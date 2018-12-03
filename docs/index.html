@@ -1199,6 +1199,21 @@ segments(y0 = mu_slopes[31:60]+trust_av,
 <pre class="r"><code>forest(mod_rt2, grouping = &quot;Subject&quot;, pars = &quot;Trustworthy&quot;)</code></pre>
 <pre><code>## Picking joint bandwidth of 0.0553</code></pre>
 <p><img src="index_files/figure-html/unnamed-chunk-39-1.png" width="672" /></p>
+<div id="r2" class="section level3">
+<h3>R2</h3>
+<p>In some situations it can be interesting to calculate <span class="math inline">\(R^2\)</span>. The quantity computed is a <a href="https://github.com/jgabry/bayes_R2/blob/master/bayes_R2.pdf">Bayesian generalization</a> of the typical <span class="math inline">\(R^2\)</span>.</p>
+<pre class="r"><code>bayes_R2(mod_rt2)</code></pre>
+<pre><code>##    Estimate Est.Error Q2.5 Q97.5
+## R2      0.2     0.017 0.17  0.23</code></pre>
+<p>As with all things Bayesian, we not only get a point estimate but also a distribution.</p>
+<pre class="r"><code># get full posterior 
+r2 &lt;- data.frame(bayes_R2(mod_rt2, summary = F))
+
+ggplot(data =r2) +
+  aes(x = R2) +
+  geom_density(fill = &quot;firebrick&quot;)</code></pre>
+<p><img src="index_files/figure-html/unnamed-chunk-41-1.png" width="672" /></p>
+</div>
 </div>
 <div id="inference" class="section level2">
 <h2>Inference</h2>
@@ -1231,7 +1246,7 @@ mcmc_hist(post, &quot;b_Trustworthy&quot;, binwidth = 0.025) +
            fontface = 2)</code></pre>
 <pre><code>## Warning: Removed 6000 rows containing missing values (geom_segment).</code></pre>
 <pre><code>## Warning: Removed 1 rows containing missing values (geom_text).</code></pre>
-<p><img src="index_files/figure-html/unnamed-chunk-42-1.png" width="672" /></p>
+<p><img src="index_files/figure-html/unnamed-chunk-44-1.png" width="672" /></p>
 </div>
 <div id="hdi-rope" class="section level3">
 <h3>HDI &amp; ROPE</h3>
@@ -1538,7 +1553,7 @@ BF_10
 </ul>
 <p>We can also visualize the hypothesis test:</p>
 <pre class="r"><code>plot(h)</code></pre>
-<p><img src="index_files/figure-html/unnamed-chunk-49-1.png" width="672" /></p>
+<p><img src="index_files/figure-html/unnamed-chunk-51-1.png" width="672" /></p>
 <p><strong>NOTE</strong>, Bayes Factors are <em>very</em> sensitive to the priors, and it is easy to BF-hack ‘marginal’ results. Pre-registration is useful here as well.</p>
 </div>
 <div id="model-comparison" class="section level3">
@@ -1560,8 +1575,8 @@ loo3 &lt;- loo(mod_rt3, cores = n_cores, reloo = T)</code></pre>
 <pre class="r"><code>compare_ic(loo2, loo3)</code></pre>
 <pre><code>##                    LOOIC    SE
 ## mod_rt2           7580.6 371.6
-## mod_rt3           7573.0 371.6
-## mod_rt2 - mod_rt3    7.6   4.8</code></pre>
+## mod_rt3           7571.4 371.5
+## mod_rt2 - mod_rt3    9.2   4.9</code></pre>
 <p>There is no robust difference in predictive performance between the models.</p>
 <p>There is a lot more to be said about LOO, and there is <a href="http://mc-stan.org/loo/articles/index.html">great online documentation for it</a>.</p>
 </div>
@@ -1593,7 +1608,7 @@ mod_rt_log &lt;- brm(formula = ff, data = d,
 <pre><code>## Start sampling</code></pre>
 <pre class="r"><code>pp_check(mod_rt_log)</code></pre>
 <pre><code>## Using 10 posterior samples for ppc type &#39;dens_overlay&#39; by default.</code></pre>
-<p><img src="index_files/figure-html/unnamed-chunk-54-1.png" width="672" /></p>
+<p><img src="index_files/figure-html/unnamed-chunk-56-1.png" width="672" /></p>
 <pre class="r"><code>#make a matrix of posterior predictions
 y_pred &lt;- predict(mod_rt_log, 
                   nsamples = 500, #500 samples per row of the original data frame
@@ -1602,23 +1617,23 @@ y_pred &lt;- predict(mod_rt_log,
 ppc_stat(y = d$RT_log, yrep = y_pred,
          stat = &quot;min&quot;,
          binwidth = 0.025)</code></pre>
-<p><img src="index_files/figure-html/unnamed-chunk-56-1.png" width="672" /></p>
+<p><img src="index_files/figure-html/unnamed-chunk-58-1.png" width="672" /></p>
 <pre class="r"><code>#maximum value
 ppc_stat(y = d$RT_log, yrep = y_pred,
          stat = &quot;max&quot;,
          binwidth = 0.025)</code></pre>
-<p><img src="index_files/figure-html/unnamed-chunk-57-1.png" width="672" /></p>
+<p><img src="index_files/figure-html/unnamed-chunk-59-1.png" width="672" /></p>
 <pre class="r"><code>ppc_stat_grouped(y = d$RT_log, 
                  yrep = y_pred, 
                  group = d$Trustworthy_fac,
                  binwidth = 0.005)</code></pre>
-<p><img src="index_files/figure-html/unnamed-chunk-58-1.png" width="672" /></p>
+<p><img src="index_files/figure-html/unnamed-chunk-60-1.png" width="672" /></p>
 <p>We can see the the posterior predidictions are better than before. The downside is that now all our predictors are on a log scale:</p>
 <pre class="r"><code>post &lt;- posterior_samples(mod_rt_log, &quot;^b&quot;)
 mcmc_areas(post,
            prob = 0.8,
            prob_outer = 0.95)</code></pre>
-<p><img src="index_files/figure-html/unnamed-chunk-59-1.png" width="672" /></p>
+<p><img src="index_files/figure-html/unnamed-chunk-61-1.png" width="672" /></p>
 <p>Alternatively we would have changed the likelihood used in the model, using a distribution known to be very good with human response times like the ex-Gaussian (supported by <em>brms</em>). See <a href="http://www.tascl.org/uploads/4/9/3/3/49339445/4_.pdf">Heathcote, Popiel &amp; Mewhort, 1991</a> .</p>
 </div>
 

@@ -1,0 +1,17 @@
+base
+Rcpp
+ggplot2
+brms
+bayesplot
+kableExtra
+bindrcpp
+tidyverse
+tibble
+tidyr
+readr
+purrr
+dplyr
+stringr
+forcats
+brmstools
+sjstats

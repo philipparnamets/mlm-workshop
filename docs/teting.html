@@ -25,6 +25,7 @@
 <script src="site_libs/navigation-1.1/tabsets.js"></script>
 <link href="site_libs/highlightjs-9.12.0/default.css" rel="stylesheet" />
 <script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<script src="site_libs/kePrint-0.0.1/kePrint.js"></script>
 
 <style type="text/css">code{white-space: pre;}</style>
 <style type="text/css">
@@ -304,24 +305,1071 @@ div.tocify {
 </div>
 
 
-<div id="r-markdown" class="section level2">
-<h2>R Markdown</h2>
-<p>This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <a href="http://rmarkdown.rstudio.com" class="uri">http://rmarkdown.rstudio.com</a>.</p>
-<p>When you click the <strong>Knit</strong> button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:</p>
-<pre class="r"><code>summary(cars)</code></pre>
-<pre><code>##      speed           dist    
-##  Min.   : 4.0   Min.   :  2  
-##  1st Qu.:12.0   1st Qu.: 26  
-##  Median :15.0   Median : 36  
-##  Mean   :15.4   Mean   : 43  
-##  3rd Qu.:19.0   3rd Qu.: 56  
-##  Max.   :25.0   Max.   :120</code></pre>
+<div id="load-data-and-packages" class="section level1">
+<h1>Load data and packages</h1>
+<pre class="r"><code>library(brms)
+library(bayesplot)
+library(kableExtra)</code></pre>
+<pre class="r"><code>#set up number of cores to use for fitting
+n_cores &lt;- parallel::detectCores()-1</code></pre>
+<pre class="r"><code>dat &lt;- read.delim(url(&quot;https://raw.githubusercontent.com/philipparnamets/mlm-workshop/master/data/ginger_data.txt&quot;))</code></pre>
+<pre class="r"><code>summary(dat)</code></pre>
+<pre><code>##     subject      Condition    last_meal_time    valence   
+##  Min.   :100   Min.   :0.00   Min.   : 0     high   :726  
+##  1st Qu.:160   1st Qu.:0.00   1st Qu.: 1     medium :726  
+##  Median :220   Median :1.00   Median : 3     neutral:968  
+##  Mean   :220   Mean   :0.52   Mean   : 4                  
+##  3rd Qu.:281   3rd Qu.:1.00   3rd Qu.: 4                  
+##  Max.   :341   Max.   :1.00   Max.   :78                  
+##                                                           
+##                           item         rating 
+##  chair.disgust              :242   Min.   :1  
+##  disgust.poop.disgust       :242   1st Qu.:1  
+##  disgust.rottenmeat.disgust :242   Median :4  
+##  disgust.sneeze.disgust     :242   Mean   :4  
+##  disgust.snot.disgust       :242   3rd Qu.:7  
+##  disgust.toiletstuff.disgust:242   Max.   :7  
+##  (Other)                    :968   NA&#39;s   :5</code></pre>
 </div>
-<div id="including-plots" class="section level2">
-<h2>Including Plots</h2>
-<p>You can also embed plots, for example:</p>
-<p><img src="teting_files/figure-html/pressure-1.png" width="672" /></p>
-<p>Note that the <code>echo = FALSE</code> parameter was added to the code chunk to prevent printing of the R code that generated the plot.</p>
+<div id="data-visualization" class="section level1">
+<h1>Data visualization</h1>
+<pre class="r"><code>#define a nice bar plot function
+plot_counts &lt;- function(dat, header = &quot;main&quot;,
+                        y_max = 400){
+  #bar plot
+  par(mar = c(4,5,3,3)+.1)
+  plot(NA, main = &quot;&quot;, xlab = &quot;&quot;, ylab =&quot;&quot;,
+       ylim = c(0,y_max), xlim = c(0.35,7.65),
+       axes = F)
+  axis(1, at = 1:7, 
+       lwd = 2, cex.axis = 1.1)
+  axis(2, las = 2, lwd = 2, cex.axis = 1.1)
+  mtext(&quot;rating&quot;, 1, 2.5, font= 2, cex = 1.2)
+  mtext(&quot;count&quot;, 2, 3.5, font= 2, cex = 1.2)
+  mtext(header, 3, 1, font= 2, cex = 1.3)
+  grid(col = &quot;darkgrey&quot;)
+  
+  tab &lt;- with(dat,
+       xtabs(~ rating + Condition))
+  
+  for(i in 1:nrow(tab)){
+    rect(xleft = i-.4,
+         ybottom = 0, 
+         xright = i,
+         ytop = tab[i,1],
+         lwd = 2, col = &quot;darkgray&quot;)
+    
+    rect(xleft = i,
+         ybottom = 0, 
+         xright = i+.4,
+         ytop = tab[i,2],
+         lwd = 2, col = &quot;lightgoldenrod&quot;)
+  }
+  
+  legend(x = 2, y = y_max,
+         legend = c(&quot;control&quot;, &quot;ginger&quot;),
+         fill = c(&quot;darkgray&quot;, &quot;lightgoldenrod&quot;),
+         bty = &#39;n&#39;, cex = 1.2)
+}</code></pre>
+<pre class="r"><code>plot_counts(dat, &quot;all data&quot;, y_max = 600)</code></pre>
+<p><img src="teting_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
+<pre class="r"><code>#neutral, high, medium items separately
+for (cond in unique(dat$valence)){
+  d_tmp &lt;- subset(dat, valence == cond)
+  plot_counts(dat = d_tmp, header = cond,
+              y_max = 500)
+}</code></pre>
+<p><img src="teting_files/figure-html/unnamed-chunk-7-1.png" width="672" /><img src="teting_files/figure-html/unnamed-chunk-7-2.png" width="672" /><img src="teting_files/figure-html/unnamed-chunk-7-3.png" width="672" /></p>
+<pre class="r"><code>violinCustom &lt;- function (data, xpos, scaling = 1,
+                          shade = &quot;gray&quot;, na_rm = T,
+                          whisk = .15){
+  #library(sm, quietly = T, verbose=F)
+  limit &lt;- c(min(data, na.rm = na_rm),max(data, na.rm = na_rm))
+  smout &lt;- sm::sm.density(data, display = &quot;none&quot;, xlim = limit)
+  
+  # draws the poly
+  polygon(x = c(smout$estimate*scaling + xpos, xpos - rev(smout$estimate)*scaling) , 
+          y = c(smout$eval.points, rev(smout$eval.points)),
+          col = shade)
+  
+  # put a box in it
+  half_width &lt;- max(smout$estimate*scaling)/3 # no wider than half maximum
+  Q1 &lt;- quantile(data, 0.25, na.rm = na_rm)
+  Q3 &lt;- quantile(data, 0.75, na.rm = na_rm)
+  Q2 &lt;- median(data, na.rm = na_rm)
+  IQR &lt;- Q3-Q1
+  upper = Q2 + IQR*1.5
+  if (upper &gt; limit[2]) {upper &lt;- limit[2]}
+  lower = Q2 - IQR*1.5
+  if (lower &lt; limit[1]) {lower &lt;- limit[1]}
+  segments(x0 = xpos, x1 = xpos, y0 = lower, y1 = upper, col = &quot;black&quot;, lwd =2)
+  segments(x0 = xpos-whisk, x1 = xpos+whisk, y0 = lower, y1 = lower, col = &quot;black&quot;, lwd = 1.5)
+  segments(x0 = xpos-whisk, x1 = xpos+whisk, y0 = upper, y1 = upper, col = &quot;black&quot;, lwd = 1.5)
+  polygon(x = c(xpos-half_width, xpos+half_width, xpos+half_width, xpos-half_width),
+          y = c(Q1,Q1,Q3,Q3), lwd = 2,
+          col = rgb(0.9,0.9,0.9, alpha = 0.5))
+  points(xpos, Q2, lwd = 3, cex = 1)
+  
+}
+
+plot_means &lt;- function(dat, header = &quot;main&quot;,
+                       viol_scale = 0.35){
+  par(mar=c(4,5,3,3)+.1)
+  plot(NA, ylab = &quot;&quot;, xlab = &quot;&quot;, main =&quot;&quot;,
+       axes = F,
+       xlim = c(0.5,2.5), ylim = c(0.5,7))
+  axis(1, at = 1:2, labels = c(&quot;control&quot;,&quot;ginger&quot;), 
+       lwd = 2, cex.axis = 1.1)
+  axis(2, las = 2, lwd = 2, cex.axis = 1.1)
+  mtext(&quot;condition&quot;, 1, 2.5, font= 2, cex = 1.2)
+  mtext(&quot;average rating&quot;, 2, 3.5, font= 2, cex = 1.2)
+  mtext(header, 3, 1, font= 2, cex = 1.3)
+  grid(col = &quot;darkgray&quot;)
+  
+  #aggregate by subject
+  agg &lt;- with(dat, aggregate(rating, list(Condition, subject), 
+                    function(x) mean(x, na.rm = T)))
+  
+  cols &lt;- c(&quot;darkgray&quot;, &quot;lightgoldenrod&quot;)
+  cols2 &lt;- c(rgb(169, 169, 169, alpha = 100, maxColorValue = 255),
+             rgb(238, 221, 130, alpha = 100, maxColorValue = 255))
+  for (i in unique(dat$Condition)){
+    # get points to plot
+    pp &lt;- agg[agg$Group.1==i,]$x
+    
+    # plot violin
+    violinCustom(data = pp, xpos = i+1,
+                 shade = cols2[i+1], scaling = viol_scale)
+    
+    # plot points
+    points(pp ~ jitter(rep(i+1,length(pp)),
+                       factor = 1, amount = 0.2),
+           pch = &quot;.&quot;, cex = 3, col = cols[i+1])
+  }
+  
+}</code></pre>
+<pre class="r"><code>#plot means instead
+plot_means(dat, &quot;all data&quot;)</code></pre>
+<p><img src="teting_files/figure-html/unnamed-chunk-9-1.png" width="672" /></p>
+<pre class="r"><code>#all conitions
+for (cond in unique(dat$valence)){
+  d_tmp &lt;- subset(dat, valence == cond)
+  plot_means(dat = d_tmp, header = cond)
+}</code></pre>
+<p><img src="teting_files/figure-html/unnamed-chunk-10-1.png" width="672" /><img src="teting_files/figure-html/unnamed-chunk-10-2.png" width="672" /><img src="teting_files/figure-html/unnamed-chunk-10-3.png" width="672" /></p>
+</div>
+<div id="analysis-of-means" class="section level1">
+<h1>Analysis of means</h1>
+<p>Since the authors use t-tests and Anovas in their original paper, we use multi-level models to test the hypothesis, ignoring for now the fact that ratings is ordinal.</p>
+<div id="reproducing-original-analysis" class="section level2">
+<h2>Reproducing original analysis</h2>
+<pre class="r"><code>agg &lt;- with(dat, 
+            aggregate(rating, list(Condition,valence, subject),mean))
+names(agg) &lt;- c(&quot;condition&quot;, &quot;valence&quot;, &quot;subject&quot;, &quot;rating&quot;)</code></pre>
+<p><em>Result 1: ginger does not reduce digust for highly rated stimuli</em></p>
+<pre class="r"><code>agg_1 &lt;- subset(agg, valence == &quot;high&quot;)
+t.test(rating ~ condition, data = agg_1)</code></pre>
+<pre><code>## 
+##  Welch Two Sample t-test
+## 
+## data:  rating by condition
+## t = 1, df = 200, p-value = 0.3
+## alternative hypothesis: true difference in means is not equal to 0
+## 95 percent confidence interval:
+##  -0.09  0.29
+## sample estimates:
+## mean in group 0 mean in group 1 
+##             6.6             6.5</code></pre>
+<p>R uses a Welch t-test instead of an independent samples, but it matches the reported results.</p>
+<p><em>Result 2: ginger reduces digust for medium rated stimuli</em></p>
+<pre class="r"><code>agg_1 &lt;- subset(agg, valence == &quot;medium&quot;)
+t.test(rating ~ condition, data = agg_1)</code></pre>
+<pre><code>## 
+##  Welch Two Sample t-test
+## 
+## data:  rating by condition
+## t = 2, df = 200, p-value = 0.04
+## alternative hypothesis: true difference in means is not equal to 0
+## 95 percent confidence interval:
+##  0.011 0.586
+## sample estimates:
+## mean in group 0 mean in group 1 
+##             5.4             5.1</code></pre>
+<p>This is <em>marginally</em> significant, but <strong>passes</strong> the .05 level and matches the reported results.</p>
+<p>To be fair, the authors could have reported a one-sided test since the hypothesis is obviously directional:</p>
+<pre class="r"><code>t.test(rating ~ condition, data = agg_1, alternative = &quot;greater&quot;)</code></pre>
+<pre><code>## 
+##  Welch Two Sample t-test
+## 
+## data:  rating by condition
+## t = 2, df = 200, p-value = 0.02
+## alternative hypothesis: true difference in means is greater than 0
+## 95 percent confidence interval:
+##  0.057   Inf
+## sample estimates:
+## mean in group 0 mean in group 1 
+##             5.4             5.1</code></pre>
+</div>
+<div id="using-a-multi-level-gaussian-model-instead" class="section level2">
+<h2>Using a multi-level Gaussian model instead</h2>
+<p>Since the main results are reported for the medium items, let’s focus on that.</p>
+<p>We let condition slopes vary both by subject and stimulus item, and set some weakly informative regularizing priors.</p>
+<pre class="r"><code>dat$condition_c &lt;- ifelse(dat$Condition==1,0.5,-0.5)</code></pre>
+<pre class="r"><code>dat_fit &lt;- subset(dat, valence == &quot;medium&quot;)
+dat_fit &lt;- dat_fit[complete.cases(dat_fit),] # get rid of some (1) missing data
+
+pp &lt;- c(set_prior(&quot;normal(0,.5)&quot;, &quot;b&quot;),
+        set_prior(&quot;normal(5,5)&quot;, &quot;Intercept&quot;),
+        set_prior(&quot;lkj(3)&quot;, &quot;cor&quot;),
+        set_prior(&quot;normal(0,1)&quot;, &quot;sd&quot;, group = &quot;item&quot;),
+        set_prior(&quot;normal(0,.5)&quot;, &quot;sd&quot;, group = &quot;subject&quot;),
+        set_prior(&quot;normal(0,2)&quot;, &quot;sigma&quot;))
+
+ff &lt;- bf(rating ~ 1 + condition_c +
+           (1 + condition_c | subject) + 
+           (1 + condition_c | item))
+
+fit_med &lt;- brm(formula = ff, data = dat_fit, 
+               family = gaussian(), prior = pp,
+               sample_prior = T,
+               cores = n_cores, chains = 6,
+               iter = 2e3, warmup = 1e3,
+               control = list(adapt_delta = 0.95))</code></pre>
+<pre><code>## Compiling the C++ model</code></pre>
+<pre><code>## recompiling to avoid crashing R session</code></pre>
+<pre><code>## Start sampling</code></pre>
+<pre class="r"><code>summary(fit_med)</code></pre>
+<pre><code>##  Family: gaussian 
+##   Links: mu = identity; sigma = identity 
+## Formula: rating ~ 1 + condition_c + (1 + condition_c | subject) + (1 + condition_c | item) 
+##    Data: dat_fit (Number of observations: 725) 
+## Samples: 6 chains, each with iter = 2000; warmup = 1000; thin = 1;
+##          total post-warmup samples = 6000
+## 
+## Group-Level Effects: 
+## ~item (Number of levels: 3) 
+##                            Estimate Est.Error l-95% CI u-95% CI Eff.Sample
+## sd(Intercept)                  0.99      0.41     0.44     1.99       4813
+## sd(condition_c)                0.22      0.24     0.01     0.87       3419
+## cor(Intercept,condition_c)     0.05      0.38    -0.68     0.74      11346
+##                            Rhat
+## sd(Intercept)              1.00
+## sd(condition_c)            1.00
+## cor(Intercept,condition_c) 1.00
+## 
+## ~subject (Number of levels: 242) 
+##                            Estimate Est.Error l-95% CI u-95% CI Eff.Sample
+## sd(Intercept)                  0.76      0.13     0.38     0.94        171
+## sd(condition_c)                0.41      0.34     0.02     1.34        193
+## cor(Intercept,condition_c)     0.08      0.30    -0.55     0.66       3593
+##                            Rhat
+## sd(Intercept)              1.04
+## sd(condition_c)            1.03
+## cor(Intercept,condition_c) 1.00
+## 
+## Population-Level Effects: 
+##             Estimate Est.Error l-95% CI u-95% CI Eff.Sample Rhat
+## Intercept       5.20      0.61     3.93     6.48       2606 1.00
+## condition_c    -0.25      0.20    -0.62     0.17       4854 1.00
+## 
+## Family Specific Parameters: 
+##       Estimate Est.Error l-95% CI u-95% CI Eff.Sample Rhat
+## sigma     1.35      0.04     1.27     1.44       4644 1.00
+## 
+## Samples were drawn using sampling(NUTS). For each parameter, Eff.Sample 
+## is a crude measure of effective sample size, and Rhat is the potential 
+## scale reduction factor on split chains (at convergence, Rhat = 1).</code></pre>
+<pre class="r"><code>post &lt;- posterior_samples(fit_med, &quot;^b&quot;)
+color_scheme_set(&quot;red&quot;)
+mcmc_areas(post,
+           prob = .8,
+           prob_outer = .97)</code></pre>
+<p><img src="teting_files/figure-html/unnamed-chunk-17-1.png" width="672" /></p>
+<p>We can see that the model does not seem to support the conclusion about an effect of ginger on ratings. However, we can question how reasonable it is with this gaussian assumption:</p>
+<pre class="r"><code>pp_check(fit_med)</code></pre>
+<pre><code>## Using 10 posterior samples for ppc type &#39;dens_overlay&#39; by default.</code></pre>
+<p><img src="teting_files/figure-html/unnamed-chunk-18-1.png" width="672" /></p>
+<p>So instead lets fit a model adapted to Likert scale data.</p>
+</div>
+</div>
+<div id="multi-level-ordinal-response-model" class="section level1">
+<h1>Multi-level ordinal response model</h1>
+<div id="prior-predictive-checks" class="section level2">
+<h2>Prior predictive checks</h2>
+<pre class="r"><code>dat_fit$Condition_f &lt;- factor(dat_fit$Condition, 
+                              labels = c(&quot;control&quot;, &quot;ginger&quot;))
+
+ff &lt;- bf(rating ~ 1 + Condition_f +
+           (1 + Condition_f | subject) + 
+           (1 + Condition_f | item),
+         family = cumulative(&quot;probit&quot;))</code></pre>
+<pre class="r"><code>kable(get_prior(formula = ff,
+          data = dat_fit)) %&gt;%
+  kable_styling(c(&quot;striped&quot;, &quot;condensed&quot;), full_width = F)</code></pre>
+<table class="table table-striped table-condensed" style="width: auto !important; margin-left: auto; margin-right: auto;">
+<thead>
+<tr>
+<th style="text-align:left;">
+prior
+</th>
+<th style="text-align:left;">
+class
+</th>
+<th style="text-align:left;">
+coef
+</th>
+<th style="text-align:left;">
+group
+</th>
+<th style="text-align:left;">
+resp
+</th>
+<th style="text-align:left;">
+dpar
+</th>
+<th style="text-align:left;">
+nlpar
+</th>
+<th style="text-align:left;">
+bound
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+b
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+b
+</td>
+<td style="text-align:left;">
+Condition_fginger
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+lkj(1)
+</td>
+<td style="text-align:left;">
+cor
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+cor
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+item
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+cor
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+subject
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+student_t(3, 0, 10)
+</td>
+<td style="text-align:left;">
+Intercept
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+Intercept
+</td>
+<td style="text-align:left;">
+1
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+Intercept
+</td>
+<td style="text-align:left;">
+2
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+Intercept
+</td>
+<td style="text-align:left;">
+3
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+Intercept
+</td>
+<td style="text-align:left;">
+4
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+Intercept
+</td>
+<td style="text-align:left;">
+5
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+Intercept
+</td>
+<td style="text-align:left;">
+6
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+student_t(3, 0, 10)
+</td>
+<td style="text-align:left;">
+sd
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+sd
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+item
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+sd
+</td>
+<td style="text-align:left;">
+Condition_fginger
+</td>
+<td style="text-align:left;">
+item
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+sd
+</td>
+<td style="text-align:left;">
+Intercept
+</td>
+<td style="text-align:left;">
+item
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+sd
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+subject
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+sd
+</td>
+<td style="text-align:left;">
+Condition_fginger
+</td>
+<td style="text-align:left;">
+subject
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+sd
+</td>
+<td style="text-align:left;">
+Intercept
+</td>
+<td style="text-align:left;">
+subject
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>pp &lt;- c(set_prior(&quot;normal(0,3)&quot;, class = &quot;Intercept&quot;),
+        set_prior(&quot;normal(0,0.5)&quot;, class = &quot;b&quot;),
+        set_prior(&quot;normal(0,1)&quot;, class = &quot;sd&quot;, group = &quot;item&quot;),
+        set_prior(&quot;normal(0,1)&quot;, class = &quot;sd&quot;, group = &quot;subject&quot;),
+        set_prior(&quot;lkj(3)&quot;, class = &quot;cor&quot;))
+
+tmp_dat &lt;- make_standata(ff,
+                            data = dat_fit, 
+                         prior = pp)
+
+#a function of initial values
+initfun &lt;- function() {
+  list(
+    b = array(rnorm(tmp_dat$K, 0, 0.1), dim = length(tmp_dat$K)),
+    temp_Intercept = seq(-2,2,length.out = tmp_dat$ncat-1) + rnorm(tmp_dat$ncat-1,0,0.1),
+    sd_1 = runif(tmp_dat$M_1, 0.5, 1),
+    z_1 = matrix(rnorm(tmp_dat$M_1*tmp_dat$N_1, 0, 0.01),
+                 tmp_dat$M_1, tmp_dat$N_1),
+    L_1 = diag(tmp_dat$M_1)
+  )
+}</code></pre>
+<pre class="r"><code>mod_lik_pr &lt;- brm(ff, 
+               data = dat_fit, prior = pp,
+               chains = 6, cores = n_cores,
+               iter = 2e3, warmup = 1e3,
+               inits = initfun,
+               sample_prior = &quot;only&quot;)</code></pre>
+<pre><code>## Compiling the C++ model</code></pre>
+<pre><code>## recompiling to avoid crashing R session</code></pre>
+<pre><code>## Start sampling</code></pre>
+<pre><code>## Warning: There were 7 divergent transitions after warmup. Increasing adapt_delta above 0.8 may help. See
+## http://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup</code></pre>
+<pre><code>## Warning: There were 66 transitions after warmup that exceeded the maximum treedepth. Increase max_treedepth above 10. See
+## http://mc-stan.org/misc/warnings.html#maximum-treedepth-exceeded</code></pre>
+<pre><code>## Warning: Examine the pairs() plot to diagnose sampling problems</code></pre>
+<pre class="r"><code>marginal_effects(mod_lik_pr, categorical = T)</code></pre>
+<p><img src="teting_files/figure-html/unnamed-chunk-23-1.png" width="672" /></p>
+<pre class="r"><code>pp &lt;- c(set_prior(&quot;normal(0,1)&quot;, class = &quot;Intercept&quot;),
+        set_prior(&quot;normal(0,0.5)&quot;, class = &quot;b&quot;),
+        set_prior(&quot;normal(0,1)&quot;, class = &quot;sd&quot;, group = &quot;item&quot;),
+        set_prior(&quot;normal(0,1)&quot;, class = &quot;sd&quot;, group = &quot;subject&quot;),
+        set_prior(&quot;lkj(3)&quot;, class = &quot;cor&quot;))
+
+mod_lik_pr1 &lt;- brm(ff, 
+               data = dat_fit, prior = pp,
+               chains = 6, cores = n_cores,
+               iter = 2e3, warmup = 1e3,
+               inits = initfun,
+               sample_prior = &quot;only&quot;)</code></pre>
+<pre><code>## Compiling the C++ model</code></pre>
+<pre><code>## Start sampling</code></pre>
+<pre class="r"><code>marginal_effects(mod_lik_pr1, categorical = T)</code></pre>
+<p><img src="teting_files/figure-html/unnamed-chunk-25-1.png" width="672" /></p>
+<p>That looks reasonable.</p>
+</div>
+<div id="fitting-the-model" class="section level2">
+<h2>Fitting the model</h2>
+<p>Now we fit the model, with some added control statements to help get rid of the warnings we saw earlier.</p>
+<pre class="r"><code>mod_lik &lt;- brm(ff, 
+               data = dat_fit, prior = pp,
+               chains = 6, cores = n_cores,
+               iter = 2e3, warmup = 1e3,
+               inits = initfun,
+               sample_prior = T,
+               control= list(adapt_delta =0.95,
+                             max_treedepth = 15))</code></pre>
+<pre><code>## Compiling the C++ model</code></pre>
+<pre><code>## Start sampling</code></pre>
+</div>
+<div id="diagnostics" class="section level2">
+<h2>Diagnostics</h2>
+<pre class="r"><code>all_hats &lt;- rhat(mod_lik)
+mcmc_rhat_hist(all_hats)</code></pre>
+<pre><code>## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</code></pre>
+<p><img src="teting_files/figure-html/unnamed-chunk-27-1.png" width="672" /></p>
+<pre class="r"><code>neffs &lt;- neff_ratio(mod_lik)
+mcmc_neff_hist(neffs, binwidth = 0.05)</code></pre>
+<p><img src="teting_files/figure-html/unnamed-chunk-28-1.png" width="672" /></p>
+<pre class="r"><code># which parameters have low neff
+mcmc_neff(neffs[neffs&lt;0.1]) + yaxis_text(hjust = 1)</code></pre>
+<p><img src="teting_files/figure-html/unnamed-chunk-29-1.png" width="672" /></p>
+<pre class="r"><code>pp &lt;- c(set_prior(&quot;normal(0,1)&quot;, class = &quot;Intercept&quot;),
+        set_prior(&quot;normal(0,0.5)&quot;, class = &quot;b&quot;),
+        set_prior(&quot;normal(0,1)&quot;, class = &quot;sd&quot;, group = &quot;item&quot;),
+        set_prior(&quot;normal(0,0.5)&quot;, class = &quot;sd&quot;, group = &quot;subject&quot;, coef = &quot;Intercept&quot;),
+        set_prior(&quot;normal(0,0.15)&quot;, class = &quot;sd&quot;, group = &quot;subject&quot;, coef = &quot;Condition_fginger&quot;),
+        set_prior(&quot;lkj(3)&quot;, class = &quot;cor&quot;))
+
+mod_lik2 &lt;- brm(ff, 
+               data = dat_fit, prior = pp,
+               chains = 6, cores = n_cores,
+               iter = 4e3, warmup = 2e3,
+               inits = initfun,
+               sample_prior = T,
+               control= list(adapt_delta =0.98,
+                             max_treedepth = 15))</code></pre>
+<pre><code>## Compiling the C++ model</code></pre>
+<pre><code>## recompiling to avoid crashing R session</code></pre>
+<pre><code>## Start sampling</code></pre>
+<pre class="r"><code>neffs &lt;- neff_ratio(mod_lik2)
+mcmc_neff_hist(neffs, binwidth = 0.05)</code></pre>
+<p><img src="teting_files/figure-html/unnamed-chunk-31-1.png" width="672" /></p>
+<p>And we’re good!</p>
+</div>
+<div id="posterior-predictive-checks" class="section level2">
+<h2>Posterior predictive checks</h2>
+<pre class="r"><code>summary(mod_lik2)</code></pre>
+<pre><code>##  Family: cumulative 
+##   Links: mu = probit; disc = identity 
+## Formula: rating ~ 1 + Condition_f + (1 + Condition_f | subject) + (1 + Condition_f | item) 
+##    Data: dat_fit (Number of observations: 725) 
+## Samples: 6 chains, each with iter = 4000; warmup = 2000; thin = 1;
+##          total post-warmup samples = 12000
+## 
+## Group-Level Effects: 
+## ~item (Number of levels: 3) 
+##                                  Estimate Est.Error l-95% CI u-95% CI
+## sd(Intercept)                        0.93      0.41     0.37     1.94
+## sd(Condition_fginger)                0.19      0.22     0.01     0.80
+## cor(Intercept,Condition_fginger)     0.01      0.38    -0.70     0.71
+##                                  Eff.Sample Rhat
+## sd(Intercept)                          8604 1.00
+## sd(Condition_fginger)                  7172 1.00
+## cor(Intercept,Condition_fginger)      21129 1.00
+## 
+## ~subject (Number of levels: 242) 
+##                                  Estimate Est.Error l-95% CI u-95% CI
+## sd(Intercept)                        0.68      0.08     0.52     0.83
+## sd(Condition_fginger)                0.12      0.09     0.01     0.33
+## cor(Intercept,Condition_fginger)     0.07      0.35    -0.62     0.72
+##                                  Eff.Sample Rhat
+## sd(Intercept)                          4087 1.00
+## sd(Condition_fginger)                  2778 1.00
+## cor(Intercept,Condition_fginger)      15810 1.00
+## 
+## Population-Level Effects: 
+##                   Estimate Est.Error l-95% CI u-95% CI Eff.Sample Rhat
+## Intercept[1]         -1.92      0.37    -2.59    -1.17       8154 1.00
+## Intercept[2]         -1.32      0.36    -1.97    -0.57       8191 1.00
+## Intercept[3]         -1.01      0.36    -1.66    -0.25       8204 1.00
+## Intercept[4]         -0.11      0.36    -0.75     0.64       8140 1.00
+## Intercept[5]          0.32      0.36    -0.32     1.07       8152 1.00
+## Intercept[6]          1.11      0.36     0.47     1.86       8116 1.00
+## Condition_fginger    -0.22      0.17    -0.56     0.12       7560 1.00
+## 
+## Samples were drawn using sampling(NUTS). For each parameter, Eff.Sample 
+## is a crude measure of effective sample size, and Rhat is the potential 
+## scale reduction factor on split chains (at convergence, Rhat = 1).</code></pre>
+<pre class="r"><code>pp_check(mod_lik2)</code></pre>
+<pre><code>## Using 10 posterior samples for ppc type &#39;dens_overlay&#39; by default.</code></pre>
+<p><img src="teting_files/figure-html/unnamed-chunk-33-1.png" width="672" /></p>
+<pre class="r"><code>marginal_effects(mod_lik2, categorical = T)</code></pre>
+<p><img src="teting_files/figure-html/unnamed-chunk-34-1.png" width="672" /></p>
+</div>
+</div>
+<div id="appendix" class="section level1">
+<h1>Appendix</h1>
+<p>Viewing Stan code.</p>
+<pre class="r"><code>ff &lt;- bf(rating ~ 1 + Condition_f +
+           (1 + Condition_f | subject) + 
+           (1 + Condition_f | item),
+         family = cumulative(&quot;probit&quot;))
+
+pp &lt;- c(set_prior(&quot;normal(0,3)&quot;, class = &quot;Intercept&quot;),
+        set_prior(&quot;normal(0,0.5)&quot;, class = &quot;b&quot;),
+        set_prior(&quot;normal(0,1)&quot;, class = &quot;sd&quot;, group = &quot;item&quot;),
+        set_prior(&quot;normal(0,1)&quot;, class = &quot;sd&quot;, group = &quot;subject&quot;),
+        set_prior(&quot;lkj(3)&quot;, class = &quot;cor&quot;))
+
+make_stancode(ff,data = dat_fit, prior = pp)</code></pre>
+<pre><code>## // generated with brms 2.6.0
+## functions { 
+##   /* cumulative-probit log-PDF for a single response
+##    * Args:
+##    *   y: response category
+##    *   mu: linear predictor
+##    *   thres: ordinal thresholds
+##    *   disc: discrimination parameter
+##    * Returns:
+##    *   a scalar to be added to the log posterior
+##    */
+##    real cumulative_probit_lpmf(int y, real mu, vector thres, real disc) {
+##      int ncat = num_elements(thres) + 1;
+##      real p;
+##      if (y == 1) {
+##        p = Phi(disc * (thres[1] - mu));
+##      } else if (y == ncat) {
+##        p = 1 - Phi(disc * (thres[ncat - 1] - mu));
+##      } else {
+##        p = Phi(disc * (thres[y] - mu)) -
+##            Phi(disc * (thres[y - 1] - mu));
+##      }
+##      return log(p);
+##    } 
+##   /* cumulative-probit log-PDF for a single response
+##    * including category specific effects
+##    * Args:
+##    *   y: response category
+##    *   mu: linear predictor
+##    *   mucs: predictor for category specific effects
+##    *   thres: ordinal thresholds
+##    *   disc: discrimination parameter
+##    * Returns:
+##    *   a scalar to be added to the log posterior
+##    */
+##    real cumulative_probit_cs_lpmf(int y, real mu, row_vector mucs, vector thres, real disc) {
+##      int ncat = num_elements(thres) + 1;
+##      real p;
+##      if (y == 1) {
+##        p = Phi(disc * (thres[1] - mucs[1] - mu));
+##      } else if (y == ncat) {
+##        p = 1 - Phi(disc * (thres[ncat - 1] - mucs[ncat - 1] - mu));
+##      } else {
+##        p = Phi(disc * (thres[y] - mucs[y] - mu)) -
+##            Phi(disc * (thres[y - 1] - mucs[y - 1] - mu));
+##      }
+##      return log(p);
+##    } 
+## } 
+## data { 
+##   int&lt;lower=1&gt; N;  // total number of observations 
+##   int Y[N];  // response variable 
+##   int&lt;lower=2&gt; ncat;  // number of categories 
+##   int&lt;lower=1&gt; K;  // number of population-level effects 
+##   matrix[N, K] X;  // population-level design matrix 
+##   real&lt;lower=0&gt; disc;  // discrimination parameters 
+##   // data for group-level effects of ID 1
+##   int&lt;lower=1&gt; J_1[N];
+##   int&lt;lower=1&gt; N_1;
+##   int&lt;lower=1&gt; M_1;
+##   vector[N] Z_1_1;
+##   vector[N] Z_1_2;
+##   int&lt;lower=1&gt; NC_1;
+##   // data for group-level effects of ID 2
+##   int&lt;lower=1&gt; J_2[N];
+##   int&lt;lower=1&gt; N_2;
+##   int&lt;lower=1&gt; M_2;
+##   vector[N] Z_2_1;
+##   vector[N] Z_2_2;
+##   int&lt;lower=1&gt; NC_2;
+##   int prior_only;  // should the likelihood be ignored? 
+## } 
+## transformed data { 
+##   int Kc = K - 1; 
+##   matrix[N, K - 1] Xc;  // centered version of X 
+##   vector[K - 1] means_X;  // column means of X before centering 
+##   for (i in 2:K) { 
+##     means_X[i - 1] = mean(X[, i]); 
+##     Xc[, i - 1] = X[, i] - means_X[i - 1]; 
+##   } 
+## } 
+## parameters { 
+##   vector[Kc] b;  // population-level effects 
+##   ordered[ncat-1] temp_Intercept;  // temporary thresholds 
+##   vector&lt;lower=0&gt;[M_1] sd_1;  // group-level standard deviations
+##   matrix[M_1, N_1] z_1;  // unscaled group-level effects
+##   // cholesky factor of correlation matrix
+##   cholesky_factor_corr[M_1] L_1;
+##   vector&lt;lower=0&gt;[M_2] sd_2;  // group-level standard deviations
+##   matrix[M_2, N_2] z_2;  // unscaled group-level effects
+##   // cholesky factor of correlation matrix
+##   cholesky_factor_corr[M_2] L_2;
+## } 
+## transformed parameters { 
+##   // group-level effects 
+##   matrix[N_1, M_1] r_1 = (diag_pre_multiply(sd_1, L_1) * z_1)&#39;;
+##   vector[N_1] r_1_1 = r_1[, 1];
+##   vector[N_1] r_1_2 = r_1[, 2];
+##   // group-level effects 
+##   matrix[N_2, M_2] r_2 = (diag_pre_multiply(sd_2, L_2) * z_2)&#39;;
+##   vector[N_2] r_2_1 = r_2[, 1];
+##   vector[N_2] r_2_2 = r_2[, 2];
+## } 
+## model { 
+##   vector[N] mu = Xc * b;
+##   for (n in 1:N) { 
+##     mu[n] += r_1_1[J_1[n]] * Z_1_1[n] + r_1_2[J_1[n]] * Z_1_2[n] + r_2_1[J_2[n]] * Z_2_1[n] + r_2_2[J_2[n]] * Z_2_2[n];
+##   } 
+##   // priors including all constants 
+##   target += normal_lpdf(b | 0,0.5); 
+##   target += normal_lpdf(temp_Intercept | 0,3); 
+##   target += normal_lpdf(sd_1 | 0,1)
+##     - 2 * normal_lccdf(0 | 0,1); 
+##   target += normal_lpdf(to_vector(z_1) | 0, 1);
+##   target += lkj_corr_cholesky_lpdf(L_1 | 3); 
+##   target += normal_lpdf(sd_2 | 0,1)
+##     - 2 * normal_lccdf(0 | 0,1); 
+##   target += normal_lpdf(to_vector(z_2) | 0, 1);
+##   target += lkj_corr_cholesky_lpdf(L_2 | 3); 
+##   // likelihood including all constants 
+##   if (!prior_only) { 
+##     for (n in 1:N) {
+##       target += cumulative_probit_lpmf(Y[n] | mu[n], temp_Intercept, disc);
+##     }
+##   } 
+## } 
+## generated quantities { 
+##   // compute actual thresholds 
+##   vector[ncat - 1] b_Intercept = temp_Intercept + dot_product(means_X, b); 
+##   corr_matrix[M_1] Cor_1 = multiply_lower_tri_self_transpose(L_1);
+##   vector&lt;lower=-1,upper=1&gt;[NC_1] cor_1;
+##   corr_matrix[M_2] Cor_2 = multiply_lower_tri_self_transpose(L_2);
+##   vector&lt;lower=-1,upper=1&gt;[NC_2] cor_2;
+##   // take only relevant parts of correlation matrix
+##   cor_1[1] = Cor_1[1,2]; 
+##   // take only relevant parts of correlation matrix
+##   cor_2[1] = Cor_2[1,2]; 
+## }</code></pre>
+<pre class="r"><code># parameters { 
+#   vector[Kc] b;  // population-level effects 
+#   ordered[ncat-1] temp_Intercept;  // temporary thresholds 
+#   vector&lt;lower=0&gt;[M_1] sd_1;  // group-level standard deviations
+#   matrix[M_1, N_1] z_1;  // unscaled group-level effects
+#   // cholesky factor of correlation matrix
+#   cholesky_factor_corr[M_1] L_1;</code></pre>
+<pre class="r"><code>tmp_dat &lt;- make_standata(ff,
+                            data = dat_fit, 
+                         prior = pp)
+str(tmp_dat, 1, give.attr = FALSE)</code></pre>
+<pre><code>## List of 19
+##  $ N         : int 725
+##  $ Y         : int [1:725(1d)] 7 6 6 7 7 5 4 6 7 6 ...
+##  $ ncat      : int 7
+##  $ K         : int 2
+##  $ X         : num [1:725, 1:2] 1 1 1 1 1 1 1 1 1 1 ...
+##  $ Z_1_1     : num [1:725(1d)] 1 1 1 1 1 1 1 1 1 1 ...
+##  $ Z_1_2     : num [1:725(1d)] 0 1 0 0 1 1 0 0 0 1 ...
+##  $ Z_2_1     : num [1:725(1d)] 1 1 1 1 1 1 1 1 1 1 ...
+##  $ Z_2_2     : num [1:725(1d)] 0 1 0 0 1 1 0 0 0 1 ...
+##  $ disc      : num 1
+##  $ J_1       : int [1:725(1d)] 3 3 3 3 3 3 3 3 3 3 ...
+##  $ N_1       : int 3
+##  $ M_1       : int 2
+##  $ NC_1      : num 1
+##  $ J_2       : int [1:725(1d)] 1 2 3 4 5 6 7 8 9 10 ...
+##  $ N_2       : int 242
+##  $ M_2       : int 2
+##  $ NC_2      : num 1
+##  $ prior_only: int 0</code></pre>
+<pre class="r"><code>initfun &lt;- function() {
+  list(
+    b = array(rnorm(tmp_dat$K, 0, 0.1), dim = length(tmp_dat$K)),
+    temp_Intercept = seq(-2,2,length.out = tmp_dat$ncat-1) + rnorm(tmp_dat$ncat-1,0,0.1),
+    sd_1 = runif(tmp_dat$M_1, 0.5, 1),
+    z_1 = matrix(rnorm(tmp_dat$M_1*tmp_dat$N_1, 0, 0.01),
+                 tmp_dat$M_1, tmp_dat$N_1),
+    L_1 = diag(tmp_dat$M_1)
+  )
+}</code></pre>
 </div>
 
 

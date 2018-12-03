@@ -16,12 +16,8 @@ options(scipen = 0, digits = 2)
 
 ```{r, message=F}
 library(brms)
-library(ggplot2)
 library(bayesplot)
-library(tidyverse)
 library(kableExtra)
-library(brmstools)
-library(sjstats)
 ```
 
 ```{r}
@@ -30,23 +26,452 @@ n_cores <- parallel::detectCores()-1
 ```
 
 ```{r}
-dat <- read.spss(url("https://raw.githubusercontent.com/philipparnamets/mlm-workshop/master/data/Ginger_Study_1.sav"),    
-               to.data.frame = T, use.value.labels = F)
+dat <- read.delim(url("https://raw.githubusercontent.com/philipparnamets/mlm-workshop/master/data/ginger_data.txt"))
+```
 
-#add subject label
-dat$subject <- seq(from = 100, by =1, length.out = 242)
-
-
-#convert to long format
-#only keep disgust ratings for now
-dat %>% select(., subject, Condition, 
-             last_meal_time, ends_with("disgust")) %>%
-  gather(., item , rating, -subject, -Condition, -last_meal_time) %>%
-  separate(., item, c("valence", "item"), extra="merge") -> d
-
-dat[dat$valence=="med",]$valence <- "medium"
+```{r}
+summary(dat)
 ```
 
 
 #Data visualization
+
+```{r}
+#define a nice bar plot function
+plot_counts <- function(dat, header = "main",
+                        y_max = 400){
+  #bar plot
+  par(mar = c(4,5,3,3)+.1)
+  plot(NA, main = "", xlab = "", ylab ="",
+       ylim = c(0,y_max), xlim = c(0.35,7.65),
+       axes = F)
+  axis(1, at = 1:7, 
+       lwd = 2, cex.axis = 1.1)
+  axis(2, las = 2, lwd = 2, cex.axis = 1.1)
+  mtext("rating", 1, 2.5, font= 2, cex = 1.2)
+  mtext("count", 2, 3.5, font= 2, cex = 1.2)
+  mtext(header, 3, 1, font= 2, cex = 1.3)
+  grid(col = "darkgrey")
+  
+  tab <- with(dat,
+       xtabs(~ rating + Condition))
+  
+  for(i in 1:nrow(tab)){
+    rect(xleft = i-.4,
+         ybottom = 0, 
+         xright = i,
+         ytop = tab[i,1],
+         lwd = 2, col = "darkgray")
+    
+    rect(xleft = i,
+         ybottom = 0, 
+         xright = i+.4,
+         ytop = tab[i,2],
+         lwd = 2, col = "lightgoldenrod")
+  }
+  
+  legend(x = 2, y = y_max,
+         legend = c("control", "ginger"),
+         fill = c("darkgray", "lightgoldenrod"),
+         bty = 'n', cex = 1.2)
+}
+
+```
+
+```{r}
+plot_counts(dat, "all data", y_max = 600)
+```
+
+
+```{r}
+#neutral, high, medium items separately
+for (cond in unique(dat$valence)){
+  d_tmp <- subset(dat, valence == cond)
+  plot_counts(dat = d_tmp, header = cond,
+              y_max = 500)
+}
+
+```
+
+```{r}
+violinCustom <- function (data, xpos, scaling = 1,
+                          shade = "gray", na_rm = T,
+                          whisk = .15){
+  #library(sm, quietly = T, verbose=F)
+  limit <- c(min(data, na.rm = na_rm),max(data, na.rm = na_rm))
+  smout <- sm::sm.density(data, display = "none", xlim = limit)
+  
+  # draws the poly
+  polygon(x = c(smout$estimate*scaling + xpos, xpos - rev(smout$estimate)*scaling) , 
+          y = c(smout$eval.points, rev(smout$eval.points)),
+          col = shade)
+  
+  # put a box in it
+  half_width <- max(smout$estimate*scaling)/3 # no wider than half maximum
+  Q1 <- quantile(data, 0.25, na.rm = na_rm)
+  Q3 <- quantile(data, 0.75, na.rm = na_rm)
+  Q2 <- median(data, na.rm = na_rm)
+  IQR <- Q3-Q1
+  upper = Q2 + IQR*1.5
+  if (upper > limit[2]) {upper <- limit[2]}
+  lower = Q2 - IQR*1.5
+  if (lower < limit[1]) {lower <- limit[1]}
+  segments(x0 = xpos, x1 = xpos, y0 = lower, y1 = upper, col = "black", lwd =2)
+  segments(x0 = xpos-whisk, x1 = xpos+whisk, y0 = lower, y1 = lower, col = "black", lwd = 1.5)
+  segments(x0 = xpos-whisk, x1 = xpos+whisk, y0 = upper, y1 = upper, col = "black", lwd = 1.5)
+  polygon(x = c(xpos-half_width, xpos+half_width, xpos+half_width, xpos-half_width),
+          y = c(Q1,Q1,Q3,Q3), lwd = 2,
+          col = rgb(0.9,0.9,0.9, alpha = 0.5))
+  points(xpos, Q2, lwd = 3, cex = 1)
+  
+}
+
+plot_means <- function(dat, header = "main",
+                       viol_scale = 0.35){
+  par(mar=c(4,5,3,3)+.1)
+  plot(NA, ylab = "", xlab = "", main ="",
+       axes = F,
+       xlim = c(0.5,2.5), ylim = c(0.5,7))
+  axis(1, at = 1:2, labels = c("control","ginger"), 
+       lwd = 2, cex.axis = 1.1)
+  axis(2, las = 2, lwd = 2, cex.axis = 1.1)
+  mtext("condition", 1, 2.5, font= 2, cex = 1.2)
+  mtext("average rating", 2, 3.5, font= 2, cex = 1.2)
+  mtext(header, 3, 1, font= 2, cex = 1.3)
+  grid(col = "darkgray")
+  
+  #aggregate by subject
+  agg <- with(dat, aggregate(rating, list(Condition, subject), 
+                    function(x) mean(x, na.rm = T)))
+  
+  cols <- c("darkgray", "lightgoldenrod")
+  cols2 <- c(rgb(169, 169, 169, alpha = 100, maxColorValue = 255),
+             rgb(238, 221, 130, alpha = 100, maxColorValue = 255))
+  for (i in unique(dat$Condition)){
+    # get points to plot
+    pp <- agg[agg$Group.1==i,]$x
+    
+    # plot violin
+    violinCustom(data = pp, xpos = i+1,
+                 shade = cols2[i+1], scaling = viol_scale)
+    
+    # plot points
+    points(pp ~ jitter(rep(i+1,length(pp)),
+                       factor = 1, amount = 0.2),
+           pch = ".", cex = 3, col = cols[i+1])
+  }
+  
+}
+
+```
+
+```{r}
+#plot means instead
+plot_means(dat, "all data")
+
+```
+
+```{r}
+#all conitions
+for (cond in unique(dat$valence)){
+  d_tmp <- subset(dat, valence == cond)
+  plot_means(dat = d_tmp, header = cond)
+}
+```
+
+
+#Analysis of means
+
+Since the authors use t-tests and Anovas in their original paper, we use multi-level models to test the hypothesis, ignoring for now the fact that ratings is ordinal. 
+
+##Reproducing original analysis
+
+```{r}
+agg <- with(dat, 
+            aggregate(rating, list(Condition,valence, subject),mean))
+names(agg) <- c("condition", "valence", "subject", "rating")
+```
+
+*Result 1: ginger does not reduce digust for highly rated stimuli*
+
+```{r}
+agg_1 <- subset(agg, valence == "high")
+t.test(rating ~ condition, data = agg_1)
+```
+
+R uses a Welch t-test instead of an independent samples, but it matches the reported results.
+
+*Result 2: ginger reduces digust for medium rated stimuli*
+
+```{r}
+agg_1 <- subset(agg, valence == "medium")
+t.test(rating ~ condition, data = agg_1)
+```
+
+This is *marginally* significant, but **passes** the .05 level and matches the reported results.
+
+To be fair, the authors could have reported a one-sided test since the hypothesis is obviously directional:
+
+```{r}
+t.test(rating ~ condition, data = agg_1, alternative = "greater")
+```
+
+
+##Using a multi-level Gaussian model instead
+
+Since the main results are reported for the medium items, let's focus on that.
+
+We let condition slopes vary both by subject and stimulus item, and set some weakly informative regularizing priors.
+
+```{r}
+dat$condition_c <- ifelse(dat$Condition==1,0.5,-0.5)
+```
+
+
+```{r brms medium data basic fit, results='hide', cache=T}
+dat_fit <- subset(dat, valence == "medium")
+dat_fit <- dat_fit[complete.cases(dat_fit),] # get rid of some (1) missing data
+
+pp <- c(set_prior("normal(0,.5)", "b"),
+        set_prior("normal(5,5)", "Intercept"),
+        set_prior("lkj(3)", "cor"),
+        set_prior("normal(0,1)", "sd", group = "item"),
+        set_prior("normal(0,.5)", "sd", group = "subject"),
+        set_prior("normal(0,2)", "sigma"))
+
+ff <- bf(rating ~ 1 + condition_c +
+           (1 + condition_c | subject) + 
+           (1 + condition_c | item))
+
+fit_med <- brm(formula = ff, data = dat_fit, 
+               family = gaussian(), prior = pp,
+               sample_prior = T,
+               cores = n_cores, chains = 6,
+               iter = 2e3, warmup = 1e3,
+               control = list(adapt_delta = 0.95))
+```
+
+```{r}
+summary(fit_med)
+```
+
+```{r}
+post <- posterior_samples(fit_med, "^b")
+color_scheme_set("red")
+mcmc_areas(post,
+           prob = .8,
+           prob_outer = .97)
+```
+
+We can see that the model does not seem to support the conclusion about an effect of ginger on ratings. However, we can question how reasonable it is with this gaussian assumption: 
+
+
+```{r}
+pp_check(fit_med)
+```
+
+So instead lets fit a model adapted to Likert scale data.
+
+#Multi-level ordinal response model
+
+##Prior predictive checks
+
+```{r}
+dat_fit$Condition_f <- factor(dat_fit$Condition, 
+                              labels = c("control", "ginger"))
+
+ff <- bf(rating ~ 1 + Condition_f +
+           (1 + Condition_f | subject) + 
+           (1 + Condition_f | item),
+         family = cumulative("probit"))
+```
+
+```{r}
+kable(get_prior(formula = ff,
+          data = dat_fit)) %>%
+  kable_styling(c("striped", "condensed"), full_width = F)
+```
+
+```{r}
+pp <- c(set_prior("normal(0,3)", class = "Intercept"),
+        set_prior("normal(0,0.5)", class = "b"),
+        set_prior("normal(0,1)", class = "sd", group = "item"),
+        set_prior("normal(0,1)", class = "sd", group = "subject"),
+        set_prior("lkj(3)", class = "cor"))
+
+tmp_dat <- make_standata(ff,
+                            data = dat_fit, 
+                         prior = pp)
+
+#a function of initial values
+initfun <- function() {
+  list(
+    b = array(rnorm(tmp_dat$K, 0, 0.1), dim = length(tmp_dat$K)),
+    temp_Intercept = seq(-2,2,length.out = tmp_dat$ncat-1) + rnorm(tmp_dat$ncat-1,0,0.1),
+    sd_1 = runif(tmp_dat$M_1, 0.5, 1),
+    z_1 = matrix(rnorm(tmp_dat$M_1*tmp_dat$N_1, 0, 0.01),
+                 tmp_dat$M_1, tmp_dat$N_1),
+    L_1 = diag(tmp_dat$M_1)
+  )
+}
+```
+
+```{r, results='hide', cache=T}
+mod_lik_pr <- brm(ff, 
+               data = dat_fit, prior = pp,
+               chains = 6, cores = n_cores,
+               iter = 2e3, warmup = 1e3,
+               inits = initfun,
+               sample_prior = "only")
+```
+
+
+
+```{r}
+marginal_effects(mod_lik_pr, categorical = T)
+```
+
+
+```{r, results='hide', cache=T}
+pp <- c(set_prior("normal(0,1)", class = "Intercept"),
+        set_prior("normal(0,0.5)", class = "b"),
+        set_prior("normal(0,1)", class = "sd", group = "item"),
+        set_prior("normal(0,1)", class = "sd", group = "subject"),
+        set_prior("lkj(3)", class = "cor"))
+
+mod_lik_pr1 <- brm(ff, 
+               data = dat_fit, prior = pp,
+               chains = 6, cores = n_cores,
+               iter = 2e3, warmup = 1e3,
+               inits = initfun,
+               sample_prior = "only")
+```
+
+```{r}
+marginal_effects(mod_lik_pr1, categorical = T)
+```
+
+That looks reasonable.
+
+##Fitting the model
+
+Now we fit the model, with some added control statements to help get rid of the warnings we saw earlier.
+
+```{r, results='hide', cache=T}
+mod_lik <- brm(ff, 
+               data = dat_fit, prior = pp,
+               chains = 6, cores = n_cores,
+               iter = 2e3, warmup = 1e3,
+               inits = initfun,
+               sample_prior = T,
+               control= list(adapt_delta =0.95,
+                             max_treedepth = 15))
+```
+
+##Diagnostics
+
+```{r}
+all_hats <- rhat(mod_lik)
+mcmc_rhat_hist(all_hats)
+```
+
+```{r}
+neffs <- neff_ratio(mod_lik)
+mcmc_neff_hist(neffs, binwidth = 0.05)
+```
+
+```{r}
+# which parameters have low neff
+mcmc_neff(neffs[neffs<0.1]) + yaxis_text(hjust = 1)
+```
+
+
+
+```{r, results='hide', cache=T}
+pp <- c(set_prior("normal(0,1)", class = "Intercept"),
+        set_prior("normal(0,0.5)", class = "b"),
+        set_prior("normal(0,1)", class = "sd", group = "item"),
+        set_prior("normal(0,0.5)", class = "sd", group = "subject", coef = "Intercept"),
+        set_prior("normal(0,0.15)", class = "sd", group = "subject", coef = "Condition_fginger"),
+        set_prior("lkj(3)", class = "cor"))
+
+mod_lik2 <- brm(ff, 
+               data = dat_fit, prior = pp,
+               chains = 6, cores = n_cores,
+               iter = 4e3, warmup = 2e3,
+               inits = initfun,
+               sample_prior = T,
+               control= list(adapt_delta =0.98,
+                             max_treedepth = 15))
+```
+
+```{r}
+neffs <- neff_ratio(mod_lik2)
+mcmc_neff_hist(neffs, binwidth = 0.05)
+```
+
+And we're good!
+
+
+##Posterior predictive checks
+
+```{r}
+summary(mod_lik2)
+```
+
+```{r}
+pp_check(mod_lik2)
+```
+
+```{r}
+marginal_effects(mod_lik2, categorical = T)
+```
+
+
+#Appendix
+
+Viewing Stan code.
+
+```{r}
+ff <- bf(rating ~ 1 + Condition_f +
+           (1 + Condition_f | subject) + 
+           (1 + Condition_f | item),
+         family = cumulative("probit"))
+
+pp <- c(set_prior("normal(0,3)", class = "Intercept"),
+        set_prior("normal(0,0.5)", class = "b"),
+        set_prior("normal(0,1)", class = "sd", group = "item"),
+        set_prior("normal(0,1)", class = "sd", group = "subject"),
+        set_prior("lkj(3)", class = "cor"))
+
+make_stancode(ff,data = dat_fit, prior = pp)
+# parameters { 
+#   vector[Kc] b;  // population-level effects 
+#   ordered[ncat-1] temp_Intercept;  // temporary thresholds 
+#   vector<lower=0>[M_1] sd_1;  // group-level standard deviations
+#   matrix[M_1, N_1] z_1;  // unscaled group-level effects
+#   // cholesky factor of correlation matrix
+#   cholesky_factor_corr[M_1] L_1;
+```
+
+```{r}
+tmp_dat <- make_standata(ff,
+                            data = dat_fit, 
+                         prior = pp)
+str(tmp_dat, 1, give.attr = FALSE)
+```
+
+
+```{r}
+initfun <- function() {
+  list(
+    b = array(rnorm(tmp_dat$K, 0, 0.1), dim = length(tmp_dat$K)),
+    temp_Intercept = seq(-2,2,length.out = tmp_dat$ncat-1) + rnorm(tmp_dat$ncat-1,0,0.1),
+    sd_1 = runif(tmp_dat$M_1, 0.5, 1),
+    z_1 = matrix(rnorm(tmp_dat$M_1*tmp_dat$N_1, 0, 0.01),
+                 tmp_dat$M_1, tmp_dat$N_1),
+    L_1 = diag(tmp_dat$M_1)
+  )
+}
+```
 
