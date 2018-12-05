@@ -600,7 +600,7 @@ mod_rt3 <- brm(RT ~ 1 + Trustworthy + Face_trust_s  +
 
 The current gold standard for this kind of model comparison is approximate leave-one-out cross validation (LOO). Note that this can be computationally taxing. An alternative, also supported by brms, is WAIC - (Widely Applicable Information Criterion).
 
-```{r, warning = F, message = F, cache=T}
+```{r rt loo, warning = F, message = F, cache=T}
 #only run if you have time to wait a bit..
 loo2 <- loo(mod_rt2, cores = n_cores, reloo = T)
 loo3 <- loo(mod_rt3, cores = n_cores, reloo = T)

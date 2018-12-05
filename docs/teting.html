@@ -309,7 +309,8 @@ div.tocify {
 <h1>Load data and packages</h1>
 <pre class="r"><code>library(brms)
 library(bayesplot)
-library(kableExtra)</code></pre>
+library(kableExtra)
+library(brmstools)</code></pre>
 <pre class="r"><code>#set up number of cores to use for fitting
 n_cores &lt;- parallel::detectCores()-1</code></pre>
 <pre class="r"><code>dat &lt;- read.delim(url(&quot;https://raw.githubusercontent.com/philipparnamets/mlm-workshop/master/data/ginger_data.txt&quot;))</code></pre>
@@ -334,8 +335,8 @@ n_cores &lt;- parallel::detectCores()-1</code></pre>
 <div id="data-visualization" class="section level1">
 <h1>Data visualization</h1>
 <pre class="r"><code>#define a nice bar plot function
-plot_counts &lt;- function(dat, header = &quot;main&quot;,
-                        y_max = 400){
+plot_prop &lt;- function(dat, header = &quot;main&quot;,
+                        y_max = 0.5){
   #bar plot
   par(mar = c(4,5,3,3)+.1)
   plot(NA, main = &quot;&quot;, xlab = &quot;&quot;, ylab =&quot;&quot;,
@@ -345,12 +346,13 @@ plot_counts &lt;- function(dat, header = &quot;main&quot;,
        lwd = 2, cex.axis = 1.1)
   axis(2, las = 2, lwd = 2, cex.axis = 1.1)
   mtext(&quot;rating&quot;, 1, 2.5, font= 2, cex = 1.2)
-  mtext(&quot;count&quot;, 2, 3.5, font= 2, cex = 1.2)
+  mtext(&quot;proportion&quot;, 2, 3.5, font= 2, cex = 1.2)
   mtext(header, 3, 1, font= 2, cex = 1.3)
   grid(col = &quot;darkgrey&quot;)
   
   tab &lt;- with(dat,
        xtabs(~ rating + Condition))
+  tab &lt;- prop.table(tab,2)
   
   for(i in 1:nrow(tab)){
     rect(xleft = i-.4,
@@ -371,13 +373,13 @@ plot_counts &lt;- function(dat, header = &quot;main&quot;,
          fill = c(&quot;darkgray&quot;, &quot;lightgoldenrod&quot;),
          bty = &#39;n&#39;, cex = 1.2)
 }</code></pre>
-<pre class="r"><code>plot_counts(dat, &quot;all data&quot;, y_max = 600)</code></pre>
+<pre class="r"><code>plot_prop(dat, &quot;all data&quot;)</code></pre>
 <p><img src="teting_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
 <pre class="r"><code>#neutral, high, medium items separately
 for (cond in unique(dat$valence)){
   d_tmp &lt;- subset(dat, valence == cond)
-  plot_counts(dat = d_tmp, header = cond,
-              y_max = 500)
+  plot_prop(dat = d_tmp, header = cond,
+            y_max = 1)
 }</code></pre>
 <p><img src="teting_files/figure-html/unnamed-chunk-7-1.png" width="672" /><img src="teting_files/figure-html/unnamed-chunk-7-2.png" width="672" /><img src="teting_files/figure-html/unnamed-chunk-7-3.png" width="672" /></p>
 <pre class="r"><code>violinCustom &lt;- function (data, xpos, scaling = 1,
@@ -517,6 +519,7 @@ t.test(rating ~ condition, data = agg_1)</code></pre>
 <pre class="r"><code>dat$condition_c &lt;- ifelse(dat$Condition==1,0.5,-0.5)</code></pre>
 <pre class="r"><code>dat_fit &lt;- subset(dat, valence == &quot;medium&quot;)
 dat_fit &lt;- dat_fit[complete.cases(dat_fit),] # get rid of some (1) missing data
+dat_fit$item &lt;- factor(dat_fit$item)
 
 pp &lt;- c(set_prior(&quot;normal(0,.5)&quot;, &quot;b&quot;),
         set_prior(&quot;normal(5,5)&quot;, &quot;Intercept&quot;),
@@ -536,7 +539,6 @@ fit_med &lt;- brm(formula = ff, data = dat_fit,
                iter = 2e3, warmup = 1e3,
                control = list(adapt_delta = 0.95))</code></pre>
 <pre><code>## Compiling the C++ model</code></pre>
-<pre><code>## recompiling to avoid crashing R session</code></pre>
 <pre><code>## Start sampling</code></pre>
 <pre class="r"><code>summary(fit_med)</code></pre>
 <pre><code>##  Family: gaussian 
@@ -549,9 +551,9 @@ fit_med &lt;- brm(formula = ff, data = dat_fit,
 ## Group-Level Effects: 
 ## ~item (Number of levels: 3) 
 ##                            Estimate Est.Error l-95% CI u-95% CI Eff.Sample
-## sd(Intercept)                  0.99      0.41     0.44     1.99       4813
-## sd(condition_c)                0.22      0.24     0.01     0.87       3419
-## cor(Intercept,condition_c)     0.05      0.38    -0.68     0.74      11346
+## sd(Intercept)                  0.99      0.42     0.42     2.02       4084
+## sd(condition_c)                0.23      0.25     0.01     0.93       2189
+## cor(Intercept,condition_c)     0.04      0.37    -0.67     0.72       8047
 ##                            Rhat
 ## sd(Intercept)              1.00
 ## sd(condition_c)            1.00
@@ -559,22 +561,22 @@ fit_med &lt;- brm(formula = ff, data = dat_fit,
 ## 
 ## ~subject (Number of levels: 242) 
 ##                            Estimate Est.Error l-95% CI u-95% CI Eff.Sample
-## sd(Intercept)                  0.76      0.13     0.38     0.94        171
-## sd(condition_c)                0.41      0.34     0.02     1.34        193
-## cor(Intercept,condition_c)     0.08      0.30    -0.55     0.66       3593
+## sd(Intercept)                  0.74      0.15     0.29     0.94        111
+## sd(condition_c)                0.46      0.38     0.02     1.40        129
+## cor(Intercept,condition_c)     0.07      0.29    -0.53     0.65       3602
 ##                            Rhat
-## sd(Intercept)              1.04
-## sd(condition_c)            1.03
+## sd(Intercept)              1.05
+## sd(condition_c)            1.05
 ## cor(Intercept,condition_c) 1.00
 ## 
 ## Population-Level Effects: 
 ##             Estimate Est.Error l-95% CI u-95% CI Eff.Sample Rhat
-## Intercept       5.20      0.61     3.93     6.48       2606 1.00
-## condition_c    -0.25      0.20    -0.62     0.17       4854 1.00
+## Intercept       5.22      0.60     4.01     6.47       2489 1.00
+## condition_c    -0.25      0.20    -0.62     0.17       3868 1.00
 ## 
 ## Family Specific Parameters: 
 ##       Estimate Est.Error l-95% CI u-95% CI Eff.Sample Rhat
-## sigma     1.35      0.04     1.27     1.44       4644 1.00
+## sigma     1.35      0.04     1.27     1.44       3449 1.00
 ## 
 ## Samples were drawn using sampling(NUTS). For each parameter, Eff.Sample 
 ## is a crude measure of effective sample size, and Rhat is the potential 
@@ -1058,6 +1060,9 @@ initfun &lt;- function() {
 <pre><code>## Warning: Examine the pairs() plot to diagnose sampling problems</code></pre>
 <pre class="r"><code>marginal_effects(mod_lik_pr, categorical = T)</code></pre>
 <p><img src="teting_files/figure-html/unnamed-chunk-23-1.png" width="672" /></p>
+<pre class="r"><code>pp_check(mod_lik_pr)</code></pre>
+<pre><code>## Using 10 posterior samples for ppc type &#39;dens_overlay&#39; by default.</code></pre>
+<p><img src="teting_files/figure-html/unnamed-chunk-23-2.png" width="672" /></p>
 <pre class="r"><code>pp &lt;- c(set_prior(&quot;normal(0,1)&quot;, class = &quot;Intercept&quot;),
         set_prior(&quot;normal(0,0.5)&quot;, class = &quot;b&quot;),
         set_prior(&quot;normal(0,1)&quot;, class = &quot;sd&quot;, group = &quot;item&quot;),
@@ -1074,6 +1079,9 @@ mod_lik_pr1 &lt;- brm(ff,
 <pre><code>## Start sampling</code></pre>
 <pre class="r"><code>marginal_effects(mod_lik_pr1, categorical = T)</code></pre>
 <p><img src="teting_files/figure-html/unnamed-chunk-25-1.png" width="672" /></p>
+<pre class="r"><code>pp_check(mod_lik_pr1)</code></pre>
+<pre><code>## Using 10 posterior samples for ppc type &#39;dens_overlay&#39; by default.</code></pre>
+<p><img src="teting_files/figure-html/unnamed-chunk-25-2.png" width="672" /></p>
 <p>That looks reasonable.</p>
 </div>
 <div id="fitting-the-model" class="section level2">
@@ -1174,6 +1182,128 @@ mcmc_neff_hist(neffs, binwidth = 0.05)</code></pre>
 <p><img src="teting_files/figure-html/unnamed-chunk-33-1.png" width="672" /></p>
 <pre class="r"><code>marginal_effects(mod_lik2, categorical = T)</code></pre>
 <p><img src="teting_files/figure-html/unnamed-chunk-34-1.png" width="672" /></p>
+<pre class="r"><code>ypred_sum &lt;- predict(mod_lik2)</code></pre>
+<pre class="r"><code>str(ypred_sum)</code></pre>
+<pre><code>##  num [1:725, 1:7] 0.001417 0.006917 0.006583 0.000667 0.000583 ...
+##  - attr(*, &quot;dimnames&quot;)=List of 2
+##   ..$ : NULL
+##   ..$ : chr [1:7] &quot;P(Y = 1)&quot; &quot;P(Y = 2)&quot; &quot;P(Y = 3)&quot; &quot;P(Y = 4)&quot; ...</code></pre>
+<pre class="r"><code>ypred &lt;- predict(mod_lik2, summary = F, nsamples = 500)</code></pre>
+<pre class="r"><code>str(ypred)</code></pre>
+<pre><code>##  num [1:500, 1:725] 6 7 7 7 5 6 6 4 7 7 ...
+##  - attr(*, &quot;levels&quot;)= chr [1:7] &quot;1&quot; &quot;2&quot; &quot;3&quot; &quot;4&quot; ...</code></pre>
+<pre class="r"><code>ypred[1:5,1:10]</code></pre>
+<pre><code>##      [,1] [,2] [,3] [,4] [,5] [,6] [,7] [,8] [,9] [,10]
+## [1,]    6    4    7    7    7    7    7    6    7     7
+## [2,]    7    4    4    7    7    6    4    6    6     7
+## [3,]    7    7    7    6    6    6    7    4    6     4
+## [4,]    7    5    7    7    6    4    7    6    4     5
+## [5,]    5    6    7    5    7    7    7    4    7     7</code></pre>
+<p>Each original observation is now paired with 500 predictions. Or another way of thinking of this</p>
+<pre class="r"><code>mean(ypred==7)</code></pre>
+<pre><code>## [1] 0.3</code></pre>
+<pre class="r"><code>forest(mod_lik2, grouping = &quot;item&quot;)</code></pre>
+<pre><code>## Picking joint bandwidth of 0.0195</code></pre>
+<pre><code>## Picking joint bandwidth of 0.0287</code></pre>
+<pre><code>## Picking joint bandwidth of 0.0264</code></pre>
+<pre><code>## Picking joint bandwidth of 0.0257</code></pre>
+<pre><code>## Picking joint bandwidth of 0.0245</code></pre>
+<pre><code>## Picking joint bandwidth of 0.0242</code></pre>
+<pre><code>## Picking joint bandwidth of 0.0247</code></pre>
+<p><img src="teting_files/figure-html/unnamed-chunk-41-1.png" width="672" /></p>
+<pre class="r"><code>forest(mod_lik2, grouping = &quot;item&quot;, pars = &quot;Condition_fginger&quot;)</code></pre>
+<pre><code>## Picking joint bandwidth of 0.0195</code></pre>
+<p><img src="teting_files/figure-html/unnamed-chunk-42-1.png" width="672" /></p>
+<pre class="r"><code>#items separately
+for (it in unique(dat_fit$item)){
+  d_tmp &lt;- subset(dat, item == it)
+  plot_prop(dat = d_tmp, header = it,
+            y_max = 1)
+}</code></pre>
+<p><img src="teting_files/figure-html/unnamed-chunk-43-1.png" width="672" /><img src="teting_files/figure-html/unnamed-chunk-43-2.png" width="672" /><img src="teting_files/figure-html/unnamed-chunk-43-3.png" width="672" /></p>
+</div>
+<div id="fitting-an-alternative-model" class="section level2">
+<h2>Fitting an alternative model</h2>
+<pre class="r"><code>ff &lt;- bf(rating ~ 1 + Condition_f +
+           (1 + Condition_f | subject),
+         family = cumulative(&quot;probit&quot;))
+
+pp &lt;- c(set_prior(&quot;normal(0,1)&quot;, class = &quot;Intercept&quot;),
+        set_prior(&quot;normal(0,0.5)&quot;, class = &quot;b&quot;),
+        set_prior(&quot;normal(0,0.5)&quot;, class = &quot;sd&quot;, group = &quot;subject&quot;, coef = &quot;Intercept&quot;),
+        set_prior(&quot;normal(0,0.15)&quot;, class = &quot;sd&quot;, group = &quot;subject&quot;, coef = &quot;Condition_fginger&quot;),
+        set_prior(&quot;lkj(3)&quot;, class = &quot;cor&quot;))
+
+tmp_dat &lt;- make_standata(ff,
+                            data = dat_fit, 
+                         prior = pp)
+
+#a function of initial values
+initfun &lt;- function() {
+  list(
+    b = array(rnorm(tmp_dat$K, 0, 0.1), dim = length(tmp_dat$K)),
+    temp_Intercept = seq(-2,2,length.out = tmp_dat$ncat-1) + rnorm(tmp_dat$ncat-1,0,0.1),
+    sd_1 = runif(tmp_dat$M_1, 0.5, 1),
+    z_1 = matrix(rnorm(tmp_dat$M_1*tmp_dat$N_1, 0, 0.01),
+                 tmp_dat$M_1, tmp_dat$N_1),
+    L_1 = diag(tmp_dat$M_1)
+  )
+}
+
+mod_lik3 &lt;- brm(ff, 
+               data = dat_fit, prior = pp,
+               chains = 6, cores = n_cores,
+               iter = 4e3, warmup = 2e3,
+               inits = initfun,
+               sample_prior = T,
+               control= list(adapt_delta =0.98,
+                             max_treedepth = 15))</code></pre>
+<pre><code>## Compiling the C++ model</code></pre>
+<pre><code>## Start sampling</code></pre>
+<pre class="r"><code>marginal_effects(mod_lik3, categorical = T)</code></pre>
+<p><img src="teting_files/figure-html/unnamed-chunk-45-1.png" width="672" /></p>
+<pre class="r"><code>summary(mod_lik3)</code></pre>
+<pre><code>##  Family: cumulative 
+##   Links: mu = probit; disc = identity 
+## Formula: rating ~ 1 + Condition_f + (1 + Condition_f | subject) 
+##    Data: dat_fit (Number of observations: 725) 
+## Samples: 6 chains, each with iter = 4000; warmup = 2000; thin = 1;
+##          total post-warmup samples = 12000
+## 
+## Group-Level Effects: 
+## ~subject (Number of levels: 242) 
+##                                  Estimate Est.Error l-95% CI u-95% CI
+## sd(Intercept)                        0.47      0.08     0.29     0.62
+## sd(Condition_fginger)                0.12      0.09     0.00     0.33
+## cor(Intercept,Condition_fginger)     0.05      0.35    -0.63     0.71
+##                                  Eff.Sample Rhat
+## sd(Intercept)                          3129 1.00
+## sd(Condition_fginger)                  3273 1.00
+## cor(Intercept,Condition_fginger)      17680 1.00
+## 
+## Population-Level Effects: 
+##                   Estimate Est.Error l-95% CI u-95% CI Eff.Sample Rhat
+## Intercept[1]         -2.04      0.12    -2.27    -1.82      12259 1.00
+## Intercept[2]         -1.53      0.10    -1.72    -1.35      12260 1.00
+## Intercept[3]         -1.27      0.09    -1.44    -1.10      12756 1.00
+## Intercept[4]         -0.52      0.08    -0.67    -0.37      15137 1.00
+## Intercept[5]         -0.17      0.08    -0.32    -0.02      15159 1.00
+## Intercept[6]          0.50      0.08     0.34     0.65      14426 1.00
+## Condition_fginger    -0.18      0.10    -0.38     0.01      16164 1.00
+## 
+## Samples were drawn using sampling(NUTS). For each parameter, Eff.Sample 
+## is a crude measure of effective sample size, and Rhat is the potential 
+## scale reduction factor on split chains (at convergence, Rhat = 1).</code></pre>
+</div>
+<div id="inference" class="section level2">
+<h2>Inference</h2>
+<pre class="r"><code>loo_lik2 &lt;- loo::loo(mod_lik2, cores = 3, reloo = T)
+loo_lik3 &lt;- loo::loo(mod_lik2, cores = 3, reloo = T)</code></pre>
+<pre class="r"><code>compare_ic(loo_lik2, loo_lik3)</code></pre>
+<pre><code>##                       LOOIC    SE
+## mod_lik2            2291.97 38.60
+## mod_lik2            2291.93 38.60
+## mod_lik2 - mod_lik2    0.04  0.04</code></pre>
 </div>
 </div>
 <div id="appendix" class="section level1">

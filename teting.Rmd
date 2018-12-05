@@ -18,6 +18,7 @@ options(scipen = 0, digits = 2)
 library(brms)
 library(bayesplot)
 library(kableExtra)
+library(brmstools)
 ```
 
 ```{r}
@@ -38,8 +39,8 @@ summary(dat)
 
 ```{r}
 #define a nice bar plot function
-plot_counts <- function(dat, header = "main",
-                        y_max = 400){
+plot_prop <- function(dat, header = "main",
+                        y_max = 0.5){
   #bar plot
   par(mar = c(4,5,3,3)+.1)
   plot(NA, main = "", xlab = "", ylab ="",
@@ -49,12 +50,13 @@ plot_counts <- function(dat, header = "main",
        lwd = 2, cex.axis = 1.1)
   axis(2, las = 2, lwd = 2, cex.axis = 1.1)
   mtext("rating", 1, 2.5, font= 2, cex = 1.2)
-  mtext("count", 2, 3.5, font= 2, cex = 1.2)
+  mtext("proportion", 2, 3.5, font= 2, cex = 1.2)
   mtext(header, 3, 1, font= 2, cex = 1.3)
   grid(col = "darkgrey")
   
   tab <- with(dat,
        xtabs(~ rating + Condition))
+  tab <- prop.table(tab,2)
   
   for(i in 1:nrow(tab)){
     rect(xleft = i-.4,
@@ -79,7 +81,7 @@ plot_counts <- function(dat, header = "main",
 ```
 
 ```{r}
-plot_counts(dat, "all data", y_max = 600)
+plot_prop(dat, "all data")
 ```
 
 
@@ -87,8 +89,8 @@ plot_counts(dat, "all data", y_max = 600)
 #neutral, high, medium items separately
 for (cond in unique(dat$valence)){
   d_tmp <- subset(dat, valence == cond)
-  plot_counts(dat = d_tmp, header = cond,
-              y_max = 500)
+  plot_prop(dat = d_tmp, header = cond,
+            y_max = 1)
 }
 
 ```
@@ -231,6 +233,7 @@ dat$condition_c <- ifelse(dat$Condition==1,0.5,-0.5)
 ```{r brms medium data basic fit, results='hide', cache=T}
 dat_fit <- subset(dat, valence == "medium")
 dat_fit <- dat_fit[complete.cases(dat_fit),] # get rid of some (1) missing data
+dat_fit$item <- factor(dat_fit$item)
 
 pp <- c(set_prior("normal(0,.5)", "b"),
         set_prior("normal(5,5)", "Intercept"),
@@ -329,6 +332,7 @@ mod_lik_pr <- brm(ff,
 
 ```{r}
 marginal_effects(mod_lik_pr, categorical = T)
+pp_check(mod_lik_pr)
 ```
 
 
@@ -349,6 +353,7 @@ mod_lik_pr1 <- brm(ff,
 
 ```{r}
 marginal_effects(mod_lik_pr1, categorical = T)
+pp_check(mod_lik_pr1)
 ```
 
 That looks reasonable.
@@ -426,6 +431,119 @@ pp_check(mod_lik2)
 ```{r}
 marginal_effects(mod_lik2, categorical = T)
 ```
+
+
+```{r}
+ypred_sum <- predict(mod_lik2)
+```
+
+```{r}
+str(ypred_sum)
+```
+
+```{r}
+ypred <- predict(mod_lik2, summary = F, nsamples = 500)
+
+```
+
+```{r}
+str(ypred)
+```
+
+```{r}
+ypred[1:5,1:10]
+```
+
+Each original observation is now paired with 500 predictions. Or another way of thinking of this
+
+```{r}
+mean(ypred==7)
+```
+
+
+```{r}
+forest(mod_lik2, grouping = "item")
+```
+
+
+```{r}
+forest(mod_lik2, grouping = "item", pars = "Condition_fginger")
+```
+
+```{r}
+#items separately
+for (it in unique(dat_fit$item)){
+  d_tmp <- subset(dat, item == it)
+  plot_prop(dat = d_tmp, header = it,
+            y_max = 1)
+}
+
+```
+
+
+##Fitting an alternative model
+
+
+```{r, results='hide', cache=T}
+ff <- bf(rating ~ 1 + Condition_f +
+           (1 + Condition_f | subject),
+         family = cumulative("probit"))
+
+pp <- c(set_prior("normal(0,1)", class = "Intercept"),
+        set_prior("normal(0,0.5)", class = "b"),
+        set_prior("normal(0,0.5)", class = "sd", group = "subject", coef = "Intercept"),
+        set_prior("normal(0,0.15)", class = "sd", group = "subject", coef = "Condition_fginger"),
+        set_prior("lkj(3)", class = "cor"))
+
+tmp_dat <- make_standata(ff,
+                            data = dat_fit, 
+                         prior = pp)
+
+#a function of initial values
+initfun <- function() {
+  list(
+    b = array(rnorm(tmp_dat$K, 0, 0.1), dim = length(tmp_dat$K)),
+    temp_Intercept = seq(-2,2,length.out = tmp_dat$ncat-1) + rnorm(tmp_dat$ncat-1,0,0.1),
+    sd_1 = runif(tmp_dat$M_1, 0.5, 1),
+    z_1 = matrix(rnorm(tmp_dat$M_1*tmp_dat$N_1, 0, 0.01),
+                 tmp_dat$M_1, tmp_dat$N_1),
+    L_1 = diag(tmp_dat$M_1)
+  )
+}
+
+mod_lik3 <- brm(ff, 
+               data = dat_fit, prior = pp,
+               chains = 6, cores = n_cores,
+               iter = 4e3, warmup = 2e3,
+               inits = initfun,
+               sample_prior = T,
+               control= list(adapt_delta =0.98,
+                             max_treedepth = 15))
+
+```
+
+```{r}
+marginal_effects(mod_lik3, categorical = T)
+```
+
+
+```{r}
+summary(mod_lik3)
+```
+
+
+
+##Inference
+
+```{r likert loo, message =F, warning = F, cache = T}
+loo_lik2 <- loo::loo(mod_lik2, cores = 3, reloo = T)
+loo_lik3 <- loo::loo(mod_lik2, cores = 3, reloo = T)
+```
+
+```{r}
+compare_ic(loo_lik2, loo_lik3)
+```
+
 
 
 #Appendix

@@ -1608,7 +1608,7 @@ mod_rt_log &lt;- brm(formula = ff, data = d,
 <pre><code>## Start sampling</code></pre>
 <pre class="r"><code>pp_check(mod_rt_log)</code></pre>
 <pre><code>## Using 10 posterior samples for ppc type &#39;dens_overlay&#39; by default.</code></pre>
-<p><img src="index_files/figure-html/unnamed-chunk-56-1.png" width="672" /></p>
+<p><img src="index_files/figure-html/unnamed-chunk-55-1.png" width="672" /></p>
 <pre class="r"><code>#make a matrix of posterior predictions
 y_pred &lt;- predict(mod_rt_log, 
                   nsamples = 500, #500 samples per row of the original data frame
@@ -1617,23 +1617,23 @@ y_pred &lt;- predict(mod_rt_log,
 ppc_stat(y = d$RT_log, yrep = y_pred,
          stat = &quot;min&quot;,
          binwidth = 0.025)</code></pre>
-<p><img src="index_files/figure-html/unnamed-chunk-58-1.png" width="672" /></p>
+<p><img src="index_files/figure-html/unnamed-chunk-57-1.png" width="672" /></p>
 <pre class="r"><code>#maximum value
 ppc_stat(y = d$RT_log, yrep = y_pred,
          stat = &quot;max&quot;,
          binwidth = 0.025)</code></pre>
-<p><img src="index_files/figure-html/unnamed-chunk-59-1.png" width="672" /></p>
+<p><img src="index_files/figure-html/unnamed-chunk-58-1.png" width="672" /></p>
 <pre class="r"><code>ppc_stat_grouped(y = d$RT_log, 
                  yrep = y_pred, 
                  group = d$Trustworthy_fac,
                  binwidth = 0.005)</code></pre>
-<p><img src="index_files/figure-html/unnamed-chunk-60-1.png" width="672" /></p>
+<p><img src="index_files/figure-html/unnamed-chunk-59-1.png" width="672" /></p>
 <p>We can see the the posterior predidictions are better than before. The downside is that now all our predictors are on a log scale:</p>
 <pre class="r"><code>post &lt;- posterior_samples(mod_rt_log, &quot;^b&quot;)
 mcmc_areas(post,
            prob = 0.8,
            prob_outer = 0.95)</code></pre>
-<p><img src="index_files/figure-html/unnamed-chunk-61-1.png" width="672" /></p>
+<p><img src="index_files/figure-html/unnamed-chunk-60-1.png" width="672" /></p>
 <p>Alternatively we would have changed the likelihood used in the model, using a distribution known to be very good with human response times like the ex-Gaussian (supported by <em>brms</em>). See <a href="http://www.tascl.org/uploads/4/9/3/3/49339445/4_.pdf">Heathcote, Popiel &amp; Mewhort, 1991</a> .</p>
 </div>
 
