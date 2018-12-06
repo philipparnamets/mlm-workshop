@@ -195,14 +195,14 @@ ff <-
 
 ###Model formula in notation
 
-$$  y_i \sim \text{Normal}(\mu_i, \sigma) \\
+$$  y_i \sim \text{Normal}(\mu_i, \sigma) $$
 
-\mu_i \sim (\beta_0 + \beta_{0,subj[i]} + \beta_{0,stim[i]}) + 
+$$ \mu_i \sim (\beta_0 + \beta_{0,subj[i]} + \beta_{0,stim[i]}) + 
 (\beta_1 + \beta_{1,subj[i]} + \beta_{1,stim[i]})trust_i +  
 (\beta_2 + \beta_{2,subj[i]} + \beta_{2,stim[i]})face_i +
-(\beta_3 + \beta_{3,subj[i]} + \beta_{3,stim[i]})tXf_i \\
+(\beta_3 + \beta_{3,subj[i]} + \beta_{3,stim[i]})tXf_i $$
 
-\begin{bmatrix}
+$$ \begin{bmatrix}
 \beta_{[0,subj]} \\
 \beta_{[1,subj]} \\
 \beta_{[2,subj]} \\
@@ -216,9 +216,9 @@ $$  y_i \sim \text{Normal}(\mu_i, \sigma) \\
 0 \\
 0 \\
 \end{bmatrix}, S_{subj}
-\end{pmatrix} \\
+\end{pmatrix} $$
 
-\begin{bmatrix}
+$$\begin{bmatrix}
 \beta_{[0,stim]} \\
 \beta_{[1,stim]} \\
 \beta_{[2,stim]} \\
@@ -232,9 +232,7 @@ $$  y_i \sim \text{Normal}(\mu_i, \sigma) \\
 0 \\
 0 \\
 \end{bmatrix}, S_{stim}
-\end{pmatrix} \\
-
-$$
+\end{pmatrix}  $$
 
 This is alot to take in, but let's quickly break it down by line:
 
@@ -356,14 +354,14 @@ The model's priors now covers a much more reasonable range of values.
 
 Let's add our priors to the model specification:
 
-$$  y_i \sim \text{Normal}(\mu_i, \sigma) \\
+$$  y_i \sim \text{Normal}(\mu_i, \sigma) $$
 
-\mu_i \sim (\beta_0 + \beta_{0,subj[i]} + \beta_{0,stim[i]}) + 
+$$ \mu_i \sim (\beta_0 + \beta_{0,subj[i]} + \beta_{0,stim[i]}) + 
 (\beta_1 + \beta_{1,subj[i]} + \beta_{1,stim[i]})trust_i +  
 (\beta_2 + \beta_{2,subj[i]} + \beta_{2,stim[i]})face_i +
-(\beta_3 + \beta_{3,subj[i]} + \beta_{3,stim[i]})tXf_i \\
+(\beta_3 + \beta_{3,subj[i]} + \beta_{3,stim[i]})tXf_i $$
 
-\begin{bmatrix}
+$$ \begin{bmatrix}
 \beta_{[0,subj]} \\
 \beta_{[1,subj]} \\
 \beta_{[2,subj]} \\
@@ -377,9 +375,9 @@ $$  y_i \sim \text{Normal}(\mu_i, \sigma) \\
 0 \\
 0 \\
 \end{bmatrix}, S_{subj}
-\end{pmatrix} \\
+\end{pmatrix} $$
 
-\begin{bmatrix}
+$$ \begin{bmatrix}
 \beta_{[0,stim]} \\
 \beta_{[1,stim]} \\
 \beta_{[2,stim]} \\
@@ -393,13 +391,13 @@ $$  y_i \sim \text{Normal}(\mu_i, \sigma) \\
 0 \\
 0 \\
 \end{bmatrix}, S_{stim}
-\end{pmatrix} \\
+\end{pmatrix} $$
 
-\beta_0 \sim \text{Normal}(2,5) \\
+$$ \beta_0 \sim \text{Normal}(2,5) \\
 (\beta_{1},\beta_{2},\beta_{3}) \sim  \text{Normal}(0,1) \\
-\sigma \sim \text{Normal}(0,5) \\
+\sigma \sim \text{Normal}(0,5) $$
 
-S_{subj} = 
+$$ S_{subj} = 
 \begin{pmatrix}
 \sigma_{0,subj} & 0 & 0 & 0 \\
 0 & \sigma_{1,subj} & 0 & 0 \\
@@ -412,13 +410,13 @@ R_{subj}
 0 & \sigma_{1,subj} & 0 & 0 \\
 0 & 0 & \sigma_{2,subj} & 0 \\
 0 & 0 & 0 & \sigma_{3,subj} \\
-\end{pmatrix} \\
+\end{pmatrix} $$
 
-(\sigma_{0,subj},\sigma_{1,subj},\sigma_{2,subj},\sigma_{3,subj}) \sim \text{Normal}(0,1) \\
+$$ (\sigma_{0,subj},\sigma_{1,subj},\sigma_{2,subj},\sigma_{3,subj}) \sim \text{Normal}(0,1) $$
 
-R_{subj} \sim LKJ(3)
+$$ R_{subj} \sim LKJ(3) $$
 
-S_{stim} = 
+$$ S_{stim} = 
 \begin{pmatrix}
 \sigma_{0,stim} & 0 & 0 & 0 \\
 0 & \sigma_{1,stim} & 0 & 0 \\
@@ -431,13 +429,11 @@ R_{stim}
 0 & \sigma_{1,stim} & 0 & 0 \\
 0 & 0 & \sigma_{2,stim} & 0 \\
 0 & 0 & 0 & \sigma_{3,stim} \\
-\end{pmatrix} \\
+\end{pmatrix} $$
 
-(\sigma_{0,stim},\sigma_{1,stim},\sigma_{2,stim},\sigma_{3,stim}) \sim \text{Normal}(0,1) \\
+$$ (\sigma_{0,stim},\sigma_{1,stim},\sigma_{2,stim},\sigma_{3,stim}) \sim \text{Normal}(0,1) $$
 
-R_{stim} \sim LKJ(3)
-
-$$
+$$ R_{stim} \sim LKJ(3) $$
 
 #Fitting the model
 

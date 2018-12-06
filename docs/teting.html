@@ -540,7 +540,12 @@ fit_med &lt;- brm(formula = ff, data = dat_fit,
                control = list(adapt_delta = 0.95))</code></pre>
 <pre><code>## Compiling the C++ model</code></pre>
 <pre><code>## Start sampling</code></pre>
+<pre><code>## Warning: There were 1 divergent transitions after warmup. Increasing adapt_delta above 0.95 may help. See
+## http://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup</code></pre>
+<pre><code>## Warning: Examine the pairs() plot to diagnose sampling problems</code></pre>
 <pre class="r"><code>summary(fit_med)</code></pre>
+<pre><code>## Warning: There were 1 divergent transitions after warmup. Increasing adapt_delta above 0.95 may help.
+## See http://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup</code></pre>
 <pre><code>##  Family: gaussian 
 ##   Links: mu = identity; sigma = identity 
 ## Formula: rating ~ 1 + condition_c + (1 + condition_c | subject) + (1 + condition_c | item) 
@@ -550,33 +555,25 @@ fit_med &lt;- brm(formula = ff, data = dat_fit,
 ## 
 ## Group-Level Effects: 
 ## ~item (Number of levels: 3) 
-##                            Estimate Est.Error l-95% CI u-95% CI Eff.Sample
-## sd(Intercept)                  0.99      0.42     0.42     2.02       4084
-## sd(condition_c)                0.23      0.25     0.01     0.93       2189
-## cor(Intercept,condition_c)     0.04      0.37    -0.67     0.72       8047
-##                            Rhat
-## sd(Intercept)              1.00
-## sd(condition_c)            1.00
-## cor(Intercept,condition_c) 1.00
+##                            Estimate Est.Error l-95% CI u-95% CI Eff.Sample Rhat
+## sd(Intercept)                  1.00      0.43     0.43     2.04       3664 1.00
+## sd(condition_c)                0.23      0.25     0.01     0.91       2656 1.00
+## cor(Intercept,condition_c)     0.04      0.37    -0.68     0.72       6398 1.00
 ## 
 ## ~subject (Number of levels: 242) 
-##                            Estimate Est.Error l-95% CI u-95% CI Eff.Sample
-## sd(Intercept)                  0.74      0.15     0.29     0.94        111
-## sd(condition_c)                0.46      0.38     0.02     1.40        129
-## cor(Intercept,condition_c)     0.07      0.29    -0.53     0.65       3602
-##                            Rhat
-## sd(Intercept)              1.05
-## sd(condition_c)            1.05
-## cor(Intercept,condition_c) 1.00
+##                            Estimate Est.Error l-95% CI u-95% CI Eff.Sample Rhat
+## sd(Intercept)                  0.77      0.11     0.52     0.94        317 1.01
+## sd(condition_c)                0.39      0.30     0.02     1.14        250 1.02
+## cor(Intercept,condition_c)     0.08      0.30    -0.55     0.65       4215 1.00
 ## 
 ## Population-Level Effects: 
 ##             Estimate Est.Error l-95% CI u-95% CI Eff.Sample Rhat
-## Intercept       5.22      0.60     4.01     6.47       2489 1.00
-## condition_c    -0.25      0.20    -0.62     0.17       3868 1.00
+## Intercept       5.21      0.64     3.88     6.50       2010 1.00
+## condition_c    -0.24      0.20    -0.61     0.20       2781 1.00
 ## 
 ## Family Specific Parameters: 
 ##       Estimate Est.Error l-95% CI u-95% CI Eff.Sample Rhat
-## sigma     1.35      0.04     1.27     1.44       3449 1.00
+## sigma     1.35      0.04     1.27     1.44       3843 1.00
 ## 
 ## Samples were drawn using sampling(NUTS). For each parameter, Eff.Sample 
 ## is a crude measure of effective sample size, and Rhat is the potential 
@@ -1051,11 +1048,10 @@ initfun &lt;- function() {
                inits = initfun,
                sample_prior = &quot;only&quot;)</code></pre>
 <pre><code>## Compiling the C++ model</code></pre>
-<pre><code>## recompiling to avoid crashing R session</code></pre>
 <pre><code>## Start sampling</code></pre>
-<pre><code>## Warning: There were 7 divergent transitions after warmup. Increasing adapt_delta above 0.8 may help. See
+<pre><code>## Warning: There were 1 divergent transitions after warmup. Increasing adapt_delta above 0.8 may help. See
 ## http://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup</code></pre>
-<pre><code>## Warning: There were 66 transitions after warmup that exceeded the maximum treedepth. Increase max_treedepth above 10. See
+<pre><code>## Warning: There were 21 transitions after warmup that exceeded the maximum treedepth. Increase max_treedepth above 10. See
 ## http://mc-stan.org/misc/warnings.html#maximum-treedepth-exceeded</code></pre>
 <pre><code>## Warning: Examine the pairs() plot to diagnose sampling problems</code></pre>
 <pre class="r"><code>marginal_effects(mod_lik_pr, categorical = T)</code></pre>
@@ -1077,6 +1073,11 @@ mod_lik_pr1 &lt;- brm(ff,
                sample_prior = &quot;only&quot;)</code></pre>
 <pre><code>## Compiling the C++ model</code></pre>
 <pre><code>## Start sampling</code></pre>
+<pre><code>## Warning: There were 10 divergent transitions after warmup. Increasing adapt_delta above 0.8 may help. See
+## http://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup</code></pre>
+<pre><code>## Warning: There were 4 transitions after warmup that exceeded the maximum treedepth. Increase max_treedepth above 10. See
+## http://mc-stan.org/misc/warnings.html#maximum-treedepth-exceeded</code></pre>
+<pre><code>## Warning: Examine the pairs() plot to diagnose sampling problems</code></pre>
 <pre class="r"><code>marginal_effects(mod_lik_pr1, categorical = T)</code></pre>
 <p><img src="teting_files/figure-html/unnamed-chunk-25-1.png" width="672" /></p>
 <pre class="r"><code>pp_check(mod_lik_pr1)</code></pre>
@@ -1126,7 +1127,6 @@ mod_lik2 &lt;- brm(ff,
                control= list(adapt_delta =0.98,
                              max_treedepth = 15))</code></pre>
 <pre><code>## Compiling the C++ model</code></pre>
-<pre><code>## recompiling to avoid crashing R session</code></pre>
 <pre><code>## Start sampling</code></pre>
 <pre class="r"><code>neffs &lt;- neff_ratio(mod_lik2)
 mcmc_neff_hist(neffs, binwidth = 0.05)</code></pre>
@@ -1145,34 +1145,26 @@ mcmc_neff_hist(neffs, binwidth = 0.05)</code></pre>
 ## 
 ## Group-Level Effects: 
 ## ~item (Number of levels: 3) 
-##                                  Estimate Est.Error l-95% CI u-95% CI
-## sd(Intercept)                        0.93      0.41     0.37     1.94
-## sd(Condition_fginger)                0.19      0.22     0.01     0.80
-## cor(Intercept,Condition_fginger)     0.01      0.38    -0.70     0.71
-##                                  Eff.Sample Rhat
-## sd(Intercept)                          8604 1.00
-## sd(Condition_fginger)                  7172 1.00
-## cor(Intercept,Condition_fginger)      21129 1.00
+##                                  Estimate Est.Error l-95% CI u-95% CI Eff.Sample Rhat
+## sd(Intercept)                        0.93      0.41     0.37     1.95       7358 1.00
+## sd(Condition_fginger)                0.19      0.22     0.01     0.78       6112 1.00
+## cor(Intercept,Condition_fginger)     0.01      0.38    -0.70     0.70      16776 1.00
 ## 
 ## ~subject (Number of levels: 242) 
-##                                  Estimate Est.Error l-95% CI u-95% CI
-## sd(Intercept)                        0.68      0.08     0.52     0.83
-## sd(Condition_fginger)                0.12      0.09     0.01     0.33
-## cor(Intercept,Condition_fginger)     0.07      0.35    -0.62     0.72
-##                                  Eff.Sample Rhat
-## sd(Intercept)                          4087 1.00
-## sd(Condition_fginger)                  2778 1.00
-## cor(Intercept,Condition_fginger)      15810 1.00
+##                                  Estimate Est.Error l-95% CI u-95% CI Eff.Sample Rhat
+## sd(Intercept)                        0.68      0.08     0.52     0.83       3996 1.00
+## sd(Condition_fginger)                0.12      0.09     0.00     0.34       2211 1.00
+## cor(Intercept,Condition_fginger)     0.08      0.35    -0.62     0.73      14076 1.00
 ## 
 ## Population-Level Effects: 
 ##                   Estimate Est.Error l-95% CI u-95% CI Eff.Sample Rhat
-## Intercept[1]         -1.92      0.37    -2.59    -1.17       8154 1.00
-## Intercept[2]         -1.32      0.36    -1.97    -0.57       8191 1.00
-## Intercept[3]         -1.01      0.36    -1.66    -0.25       8204 1.00
-## Intercept[4]         -0.11      0.36    -0.75     0.64       8140 1.00
-## Intercept[5]          0.32      0.36    -0.32     1.07       8152 1.00
-## Intercept[6]          1.11      0.36     0.47     1.86       8116 1.00
-## Condition_fginger    -0.22      0.17    -0.56     0.12       7560 1.00
+## Intercept[1]         -1.91      0.37    -2.56    -1.14       6481 1.00
+## Intercept[2]         -1.31      0.36    -1.94    -0.54       6472 1.00
+## Intercept[3]         -0.99      0.36    -1.62    -0.23       6458 1.00
+## Intercept[4]         -0.09      0.36    -0.72     0.68       6452 1.00
+## Intercept[5]          0.33      0.36    -0.30     1.10       6446 1.00
+## Intercept[6]          1.12      0.36     0.48     1.89       6383 1.00
+## Condition_fginger    -0.22      0.17    -0.56     0.12       5725 1.00
 ## 
 ## Samples were drawn using sampling(NUTS). For each parameter, Eff.Sample 
 ## is a crude measure of effective sample size, and Rhat is the potential 
@@ -1184,35 +1176,35 @@ mcmc_neff_hist(neffs, binwidth = 0.05)</code></pre>
 <p><img src="teting_files/figure-html/unnamed-chunk-34-1.png" width="672" /></p>
 <pre class="r"><code>ypred_sum &lt;- predict(mod_lik2)</code></pre>
 <pre class="r"><code>str(ypred_sum)</code></pre>
-<pre><code>##  num [1:725, 1:7] 0.001417 0.006917 0.006583 0.000667 0.000583 ...
+<pre><code>##  num [1:725, 1:7] 0.001667 0.007167 0.005 0.00075 0.000167 ...
 ##  - attr(*, &quot;dimnames&quot;)=List of 2
 ##   ..$ : NULL
 ##   ..$ : chr [1:7] &quot;P(Y = 1)&quot; &quot;P(Y = 2)&quot; &quot;P(Y = 3)&quot; &quot;P(Y = 4)&quot; ...</code></pre>
 <pre class="r"><code>ypred &lt;- predict(mod_lik2, summary = F, nsamples = 500)</code></pre>
 <pre class="r"><code>str(ypred)</code></pre>
-<pre><code>##  num [1:500, 1:725] 6 7 7 7 5 6 6 4 7 7 ...
+<pre><code>##  num [1:500, 1:725] 6 7 6 6 4 7 7 4 6 7 ...
 ##  - attr(*, &quot;levels&quot;)= chr [1:7] &quot;1&quot; &quot;2&quot; &quot;3&quot; &quot;4&quot; ...</code></pre>
 <pre class="r"><code>ypred[1:5,1:10]</code></pre>
 <pre><code>##      [,1] [,2] [,3] [,4] [,5] [,6] [,7] [,8] [,9] [,10]
-## [1,]    6    4    7    7    7    7    7    6    7     7
-## [2,]    7    4    4    7    7    6    4    6    6     7
-## [3,]    7    7    7    6    6    6    7    4    6     4
-## [4,]    7    5    7    7    6    4    7    6    4     5
-## [5,]    5    6    7    5    7    7    7    4    7     7</code></pre>
+## [1,]    6    7    7    7    7    6    7    4    7     7
+## [2,]    7    5    6    5    4    6    6    7    7     4
+## [3,]    6    2    7    7    7    5    7    7    7     7
+## [4,]    6    6    5    6    5    6    6    7    7     6
+## [5,]    4    4    6    7    7    6    6    7    6     7</code></pre>
 <p>Each original observation is now paired with 500 predictions. Or another way of thinking of this</p>
 <pre class="r"><code>mean(ypred==7)</code></pre>
 <pre><code>## [1] 0.3</code></pre>
 <pre class="r"><code>forest(mod_lik2, grouping = &quot;item&quot;)</code></pre>
-<pre><code>## Picking joint bandwidth of 0.0195</code></pre>
-<pre><code>## Picking joint bandwidth of 0.0287</code></pre>
+<pre><code>## Picking joint bandwidth of 0.0192</code></pre>
+<pre><code>## Picking joint bandwidth of 0.0288</code></pre>
 <pre><code>## Picking joint bandwidth of 0.0264</code></pre>
 <pre><code>## Picking joint bandwidth of 0.0257</code></pre>
 <pre><code>## Picking joint bandwidth of 0.0245</code></pre>
-<pre><code>## Picking joint bandwidth of 0.0242</code></pre>
-<pre><code>## Picking joint bandwidth of 0.0247</code></pre>
+<pre><code>## Picking joint bandwidth of 0.0243</code></pre>
+<pre><code>## Picking joint bandwidth of 0.0245</code></pre>
 <p><img src="teting_files/figure-html/unnamed-chunk-41-1.png" width="672" /></p>
 <pre class="r"><code>forest(mod_lik2, grouping = &quot;item&quot;, pars = &quot;Condition_fginger&quot;)</code></pre>
-<pre><code>## Picking joint bandwidth of 0.0195</code></pre>
+<pre><code>## Picking joint bandwidth of 0.0192</code></pre>
 <p><img src="teting_files/figure-html/unnamed-chunk-42-1.png" width="672" /></p>
 <pre class="r"><code>#items separately
 for (it in unique(dat_fit$item)){
@@ -1272,24 +1264,20 @@ mod_lik3 &lt;- brm(ff,
 ## 
 ## Group-Level Effects: 
 ## ~subject (Number of levels: 242) 
-##                                  Estimate Est.Error l-95% CI u-95% CI
-## sd(Intercept)                        0.47      0.08     0.29     0.62
-## sd(Condition_fginger)                0.12      0.09     0.00     0.33
-## cor(Intercept,Condition_fginger)     0.05      0.35    -0.63     0.71
-##                                  Eff.Sample Rhat
-## sd(Intercept)                          3129 1.00
-## sd(Condition_fginger)                  3273 1.00
-## cor(Intercept,Condition_fginger)      17680 1.00
+##                                  Estimate Est.Error l-95% CI u-95% CI Eff.Sample Rhat
+## sd(Intercept)                        0.47      0.08     0.30     0.62       2944 1.00
+## sd(Condition_fginger)                0.12      0.09     0.00     0.34       2986 1.00
+## cor(Intercept,Condition_fginger)     0.05      0.36    -0.64     0.71      16629 1.00
 ## 
 ## Population-Level Effects: 
 ##                   Estimate Est.Error l-95% CI u-95% CI Eff.Sample Rhat
-## Intercept[1]         -2.04      0.12    -2.27    -1.82      12259 1.00
-## Intercept[2]         -1.53      0.10    -1.72    -1.35      12260 1.00
-## Intercept[3]         -1.27      0.09    -1.44    -1.10      12756 1.00
-## Intercept[4]         -0.52      0.08    -0.67    -0.37      15137 1.00
-## Intercept[5]         -0.17      0.08    -0.32    -0.02      15159 1.00
-## Intercept[6]          0.50      0.08     0.34     0.65      14426 1.00
-## Condition_fginger    -0.18      0.10    -0.38     0.01      16164 1.00
+## Intercept[1]         -2.04      0.12    -2.27    -1.82       8732 1.00
+## Intercept[2]         -1.53      0.10    -1.72    -1.35       9552 1.00
+## Intercept[3]         -1.27      0.09    -1.44    -1.10      10186 1.00
+## Intercept[4]         -0.52      0.08    -0.68    -0.37      13044 1.00
+## Intercept[5]         -0.17      0.08    -0.32    -0.02      13342 1.00
+## Intercept[6]          0.50      0.08     0.34     0.65      12602 1.00
+## Condition_fginger    -0.18      0.10    -0.38     0.00      13307 1.00
 ## 
 ## Samples were drawn using sampling(NUTS). For each parameter, Eff.Sample 
 ## is a crude measure of effective sample size, and Rhat is the potential 
@@ -1300,10 +1288,10 @@ mod_lik3 &lt;- brm(ff,
 <pre class="r"><code>loo_lik2 &lt;- loo::loo(mod_lik2, cores = 3, reloo = T)
 loo_lik3 &lt;- loo::loo(mod_lik2, cores = 3, reloo = T)</code></pre>
 <pre class="r"><code>compare_ic(loo_lik2, loo_lik3)</code></pre>
-<pre><code>##                       LOOIC    SE
-## mod_lik2            2291.97 38.60
-## mod_lik2            2291.93 38.60
-## mod_lik2 - mod_lik2    0.04  0.04</code></pre>
+<pre><code>##                     LOOIC SE
+## mod_lik2             2293 39
+## mod_lik2             2293 39
+## mod_lik2 - mod_lik2     0  0</code></pre>
 </div>
 </div>
 <div id="appendix" class="section level1">
