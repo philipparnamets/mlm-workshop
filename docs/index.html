@@ -303,7 +303,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">mlm-workshop</h1>
 <h4 class="author"><em>Philip</em></h4>
-<h4 class="date"><em>1 december 2018</em></h4>
+<h4 class="date"><em>7 december 2018</em></h4>
 
 </div>
 
@@ -331,7 +331,14 @@ n_cores &lt;- parallel::detectCores()-1</code></pre>
 ##  Median :14767   Median :32   Median : 0.0   Median :3.4   Median : 1  
 ##  Mean   :15343   Mean   :32   Mean   : 0.0   Mean   :3.4   Mean   : 2  
 ##  3rd Qu.:16425   3rd Qu.:49   3rd Qu.: 0.5   3rd Qu.:3.6   3rd Qu.: 2  
-##  Max.   :17668   Max.   :64   Max.   : 0.5   Max.   :4.2   Max.   :33</code></pre>
+##  Max.   :17668   Max.   :64   Max.   : 0.5   Max.   :4.2   Max.   :33  
+##      Trust     
+##  Min.   :0.00  
+##  1st Qu.:0.00  
+##  Median :1.00  
+##  Mean   :0.61  
+##  3rd Qu.:1.00  
+##  Max.   :1.00</code></pre>
 <p>We will be working with real dataset. The data comes from a trust learning experiment and represents a subset of 30 participants. Each participants did 30 trials with social partners from a trustworthy group and 30 trials with social partners from an untrustworthy group.</p>
 <p>The aim of the analysis will be to understand if participant <strong>response times differ between groups</strong>.</p>
 </div>
@@ -1308,7 +1315,7 @@ ggplot(d) +
            prob = 0.8,
            prob_outer = 0.95)</code></pre>
 <p><img src="index_files/figure-html/unnamed-chunk-36-1.png" width="672" /></p>
-<p>Having fit a multi-level model we have access to lots of other parameters that we wouldn’t have had otherwise. Let’s a quick example. First, we extract the correlation estimates for the Subject level parameters.</p>
+<p>Having fit a multi-level model we have access to lots of other parameters that we wouldn’t have had otherwise. Let’s look at a quick example. First, we extract the correlation estimates for the Subject level parameters.</p>
 <pre class="r"><code>post &lt;- posterior_samples(mod_rt2, &quot;^cor_Subject&quot;) #correlation parameters
 mcmc_areas(post,
            prob = 0.8,
@@ -1384,14 +1391,15 @@ ggplot(data =r2) +
 <h3>Posterior probabilities</h3>
 <p>The most straightforward method is to assess the posterior distribution of the parameter of interest, in this case, the coefficient of trustworthiness.</p>
 <p>For a typical two-sided inference, we can consider the posterior credible interval, for example the 97% interval, and see if this doesn’t include 0:</p>
-<pre class="r"><code>q_97 &lt;- quantile(post$b_Trustworthy, c(0.015, 0.985))
+<pre class="r"><code>post &lt;- posterior_samples(mod_rt2, &quot;^b&quot;)
+q_97 &lt;- quantile(post$b_Trustworthy, c(0.015, 0.985))
 q_97</code></pre>
-<pre><code>## 1.5%  98% 
-##   NA   NA</code></pre>
+<pre><code>##   1.5%    98% 
+## -0.673 -0.044</code></pre>
 <p>We can also calculate the posterior probability that the effect is less than 0:</p>
 <pre class="r"><code>prob &lt;- sum(post$b_Trustworthy&lt;0)/length(post$b_Trustworthy)
-paste(prob*100,&quot;% of samples are less than 0&quot;)</code></pre>
-<pre><code>## [1] &quot;NaN % of samples are less than 0&quot;</code></pre>
+paste(round(prob,2)*100,&quot;% of samples are less than 0&quot;)</code></pre>
+<pre><code>## [1] &quot;99 % of samples are less than 0&quot;</code></pre>
 <p>We can straightforwardly combine this information in a plot:</p>
 <pre class="r"><code>post &lt;- posterior_samples(mod_rt2, &quot;^b&quot;)
 mcmc_hist(post, &quot;b_Trustworthy&quot;, binwidth = 0.025) +
@@ -1406,13 +1414,11 @@ mcmc_hist(post, &quot;b_Trustworthy&quot;, binwidth = 0.025) +
            x = -0.9, y = 300,
            label = paste(prob*100,&quot;% of samples \nare less than 0&quot;),
            fontface = 2)</code></pre>
-<pre><code>## Warning: Removed 6000 rows containing missing values (geom_segment).</code></pre>
-<pre><code>## Warning: Removed 1 rows containing missing values (geom_text).</code></pre>
 <p><img src="index_files/figure-html/unnamed-chunk-46-1.png" width="672" /></p>
 </div>
 <div id="hdi-rope" class="section level3">
 <h3>HDI &amp; ROPE</h3>
-<p>An alternative to quantile-based credible intervals is the HDI (Highest posterior Density Interval). The HDI is constructed to be the narrowest range containg X% of the posterior samples. In many cases these will be the same (symmetric posteriors centered on the mode/median). John Kruschke has written a lot about the HDI &amp; ROPE approach.</p>
+<p>An alternative to quantile-based credible intervals is the HDI (Highest posterior Density Interval). The HDI is constructed to be the narrowest range containg X% of the posterior samples. In many cases these will be the same (symmetric posteriors centered on the mode/median). John Kruschke has <a href="https://journals.sagepub.com/doi/abs/10.1177/2515245918771304">written</a> a lot about the HDI &amp; ROPE approach.</p>
 <p>To get HDI intervals:</p>
 <pre class="r"><code>hdi(mod_rt2, prob= c(.89, .97))</code></pre>
 <pre><code>## 
@@ -1733,7 +1739,6 @@ BF_10
 <pre class="r"><code>#only run if you have time to wait a bit..
 loo2 &lt;- loo(mod_rt2, cores = n_cores, reloo = T)
 loo3 &lt;- loo(mod_rt3, cores = n_cores, reloo = T)</code></pre>
-<p>(For the purpose of this workshop we ignore the warning, but we really shouldn’t be..)</p>
 <pre class="r"><code>compare_ic(loo2, loo3)</code></pre>
 <pre><code>##                     LOOIC    SE
 ## mod_rt2           7570.42 365.7
@@ -1741,6 +1746,7 @@ loo3 &lt;- loo(mod_rt3, cores = n_cores, reloo = T)</code></pre>
 ## mod_rt2 - mod_rt3    0.81   6.8</code></pre>
 <p>There is no robust difference in predictive performance between the models.</p>
 <p>There is a lot more to be said about LOO, and there is <a href="http://mc-stan.org/loo/articles/index.html">great online documentation for it</a>.</p>
+<p>(Bayes Factors can also be used for model comparison)</p>
 </div>
 </div>
 </div>

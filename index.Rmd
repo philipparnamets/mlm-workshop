@@ -1,7 +1,7 @@
 ---
 title: "mlm-workshop"
 author: "Philip"
-date: "1 december 2018"
+date: "7 december 2018"
 output: 
  html_document:
   toc: true
@@ -593,7 +593,7 @@ mcmc_areas(post[,-1],
            prob_outer = 0.95)
 ```
 
-Having fit a multi-level model we have access to lots of other parameters that we wouldn't have had otherwise. Let's a quick example. First, we extract the correlation estimates for the Subject level parameters. 
+Having fit a multi-level model we have access to lots of other parameters that we wouldn't have had otherwise. Let's look at a quick example. First, we extract the correlation estimates for the Subject level parameters. 
 
 ```{r}
 post <- posterior_samples(mod_rt2, "^cor_Subject") #correlation parameters
@@ -695,6 +695,7 @@ The most straightforward method is to assess the posterior distribution of the p
 For a typical two-sided inference, we can consider the posterior credible interval, for example the 97% interval, and see if this doesn't include 0:
 
 ```{r}
+post <- posterior_samples(mod_rt2, "^b")
 q_97 <- quantile(post$b_Trustworthy, c(0.015, 0.985))
 q_97
 ```
@@ -703,7 +704,7 @@ We can also calculate the posterior probability that the effect is less than 0:
 
 ```{r}
 prob <- sum(post$b_Trustworthy<0)/length(post$b_Trustworthy)
-paste(prob*100,"% of samples are less than 0")
+paste(round(prob,2)*100,"% of samples are less than 0")
 ```
 
 We can straightforwardly combine this information in a plot:
@@ -726,7 +727,7 @@ mcmc_hist(post, "b_Trustworthy", binwidth = 0.025) +
 
 ###HDI & ROPE
 
-An alternative to quantile-based credible intervals is the HDI (Highest posterior Density Interval).  The HDI is constructed to be the narrowest range containg X% of the posterior samples. In many cases these will be the same (symmetric posteriors centered on the mode/median). John Kruschke has written a lot about the HDI & ROPE approach.
+An alternative to quantile-based credible intervals is the HDI (Highest posterior Density Interval).  The HDI is constructed to be the narrowest range containg X% of the posterior samples. In many cases these will be the same (symmetric posteriors centered on the mode/median). John Kruschke has [written](https://journals.sagepub.com/doi/abs/10.1177/2515245918771304) a lot about the HDI & ROPE approach.
 
 To get HDI intervals:
 
@@ -813,8 +814,6 @@ loo2 <- loo(mod_rt2, cores = n_cores, reloo = T)
 loo3 <- loo(mod_rt3, cores = n_cores, reloo = T)
 ```
 
-(For the purpose of this workshop we ignore the warning, but we really shouldn't be..)
-
 ```{r}
 compare_ic(loo2, loo3)
 ```
@@ -822,6 +821,8 @@ compare_ic(loo2, loo3)
 There is no robust difference in predictive performance between the models. 
 
 There is a lot more to be said about LOO, and there is [great online documentation for it](http://mc-stan.org/loo/articles/index.html).
+
+(Bayes Factors can also be used for model comparison)
 
 #Appendix: Refitting the model
 
@@ -896,6 +897,7 @@ mcmc_areas(post,
            prob_outer = 0.95)
 
 ```
+
 
 
 Alternatively we would have changed the likelihood used in the model, using a distribution known to be very good with human response times like the ex-Gaussian (supported by *brms*). See [Heathcote, Popiel & Mewhort, 1991](http://www.tascl.org/uploads/4/9/3/3/49339445/4_.pdf) .

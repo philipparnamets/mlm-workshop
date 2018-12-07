@@ -12,7 +12,11 @@ knitr::opts_chunk$set(echo = TRUE)
 options(scipen = 0, digits = 2)
 ```
 
+This example invovles the use of ordinal models to fit Likert scale data, and additionally some of the trickier aspects of choosing a multilevel structure for ones data. 
+
 #Load data and packages
+
+The data come from the first study reportd in a [recent paper](http://ubc-emotionlab.ca/wp-content/files_mf/tracystecklerheltzelinpressjpsp78.pdf) investigating the role of disgust for moral judgments. Participants were divided into two conditions and either given ginger or placebo to eat. Roughly an hour later participants saw pictures depicting disgusting scenes and rated their disgust (1-7). 
 
 ```{r, message=F}
 library(brms)
@@ -182,7 +186,7 @@ for (cond in unique(dat$valence)){
 ```
 
 
-#Analysis of means
+#Preliminaries: Analysis of means
 
 Since the authors use t-tests and Anovas in their original paper, we use multi-level models to test the hypothesis, ignoring for now the fact that ratings is ordinal. 
 
@@ -221,7 +225,7 @@ t.test(rating ~ condition, data = agg_1, alternative = "greater")
 
 ##Using a multi-level Gaussian model instead
 
-Since the main results are reported for the medium items, let's focus on that.
+Since the main results/effects are reported for the medium items, let's focus on that. The point here is to show that the Gaussian model is a bad idea. 
 
 We let condition slopes vary both by subject and stimulus item, and set some weakly informative regularizing priors.
 
@@ -277,7 +281,33 @@ So instead lets fit a model adapted to Likert scale data.
 
 #Multi-level ordinal response model
 
-##Prior predictive checks
+##Selecting a model
+
+*brms* supports several ordinal and category models. There is a recent [tutorial paper](https://osf.io/cu8jv/) available that details this a bit more. 
+
+Here we will use a simple model called the cumulative model (or graded response model), assuming that there is a continuous  *latent* variable underlying participants responses. When the value of that underlying crosses certain thresholds this translates to the different ordinal responses observed. The model is cumulative since we can relate the thresholds to a cumulative distribution function, getting the probability of observing a response at least as high as that threshold. For this workshop we assume an underlying normal distributoin, leading to a *probit* model. Other choices are possible and the linked paper expands on this greatly. 
+
+We can illustrate the probit and some hypothetical thresholds:
+
+```{r}
+plot(NA, xlim=c(-3,3), ylim = c(0,1),
+      xlab = "threshold", ylab = "cumulative probability",
+      main="", cex.axis = 1.2, cex.lab = 1.4)
+cord.x <- c(-.7,seq(-.7,1,0.01),1)
+cord.y <- c(0,pnorm(seq(-.7,1,0.01)),0)
+polygon(cord.x,cord.y,col='steelblue', border = F)
+abline(v=c(-.7,1), col = "darkblue", lty = 2, lwd=2)
+curve(pnorm, from = -3, to = 3, add=T, lwd=3)
+text(x = 0, y = 0.2, 
+     labels = paste(round(pnorm(1)-pnorm(-.7),2)*100,"%"),
+     col = "white", cex = 1.5)
+```
+
+When we estimate the model we will get **N-1** intercepts reflecting the thresholds for **N** categories. The thresholds are just deviates from a standard normal (z-scores). So to get the probability of a specific category we subtract the cumulative probability of one threshold from the one preceeding it. 
+
+In the model we additionally formulate effects of variables we measured on the underlying latent variable, in forms of a regression equation. In this model it is assumed that that the effect is uniform over categories. Other ordinal models, however, allow for the estimation of category specific effects. 
+
+After all that, the actual model formula is very simple:
 
 ```{r}
 dat_fit$Condition_f <- factor(dat_fit$Condition, 
@@ -289,11 +319,18 @@ ff <- bf(rating ~ 1 + Condition_f +
          family = cumulative("probit"))
 ```
 
+##Prior predictive checks
+
+When we are fitting something considerably more complicated, it is extra important to check our modeling assumptions and our priors!
+
 ```{r}
+#what are our priors
 kable(get_prior(formula = ff,
           data = dat_fit)) %>%
   kable_styling(c("striped", "condensed"), full_width = F)
 ```
+
+There is some extra machinery to fit the model here, in that we specify a function to set initial values for the sampling process. To see how that connects with the underlying Stan code, see the Appendix.
 
 ```{r}
 pp <- c(set_prior("normal(0,3)", class = "Intercept"),
@@ -319,7 +356,7 @@ initfun <- function() {
 }
 ```
 
-```{r, results='hide', cache=T}
+```{r prior likert 1, results='hide', cache=T}
 mod_lik_pr <- brm(ff, 
                data = dat_fit, prior = pp,
                chains = 6, cores = n_cores,
@@ -335,8 +372,11 @@ marginal_effects(mod_lik_pr, categorical = T)
 pp_check(mod_lik_pr)
 ```
 
+Ok so this is not great. 
 
-```{r, results='hide', cache=T}
+Below is what I ended up with after going back and forth and tweaking a bit. 
+
+```{r prior likert 2, results='hide', cache=T}
 pp <- c(set_prior("normal(0,1)", class = "Intercept"),
         set_prior("normal(0,0.5)", class = "b"),
         set_prior("normal(0,1)", class = "sd", group = "item"),
@@ -356,13 +396,13 @@ marginal_effects(mod_lik_pr1, categorical = T)
 pp_check(mod_lik_pr1)
 ```
 
-That looks reasonable.
+That looks reasonable enough.
 
 ##Fitting the model
 
 Now we fit the model, with some added control statements to help get rid of the warnings we saw earlier.
 
-```{r, results='hide', cache=T}
+```{r first likert model, results='hide', cache=T}
 mod_lik <- brm(ff, 
                data = dat_fit, prior = pp,
                chains = 6, cores = n_cores,
@@ -374,6 +414,8 @@ mod_lik <- brm(ff,
 ```
 
 ##Diagnostics
+
+Again we want to run diagnostics on our model to make sure it is sensible.
 
 ```{r}
 all_hats <- rhat(mod_lik)
@@ -390,9 +432,10 @@ mcmc_neff_hist(neffs, binwidth = 0.05)
 mcmc_neff(neffs[neffs<0.1]) + yaxis_text(hjust = 1)
 ```
 
+We see that the model is sampling really inefficiently for some parameters. To fix this we need to adjust the priors. Again, here I went back and forth adjusting priors and refitting the model until I was satisfied. The final results is below:
 
 
-```{r, results='hide', cache=T}
+```{r main likert model, results='hide', cache=T}
 pp <- c(set_prior("normal(0,1)", class = "Intercept"),
         set_prior("normal(0,0.5)", class = "b"),
         set_prior("normal(0,1)", class = "sd", group = "item"),
@@ -420,6 +463,8 @@ And we're good!
 
 ##Posterior predictive checks
 
+OK, let's evaluate the posterior of the model. 
+
 ```{r}
 summary(mod_lik2)
 ```
@@ -428,48 +473,65 @@ summary(mod_lik2)
 pp_check(mod_lik2)
 ```
 
+This looks very good (compare to gaussian model earlier!).
+
+
 ```{r}
 marginal_effects(mod_lik2, categorical = T)
 ```
 
+On a first pass, this might seem reasonable, there looks like a small difference between categories and they vary in their expected probabilities. However, compare to the actual data:
+
+```{r}
+plot_prop(dat_fit, "the data")
+```
+
+We see that the modal response is 7 and not 4 as in that plot. But we also saw in the first posterior density check that the model seems to be predicting the data. What is going on here?
+
+First we can verify that the model is predicting the data well:
 
 ```{r}
 ypred_sum <- predict(mod_lik2)
-```
-
-```{r}
 str(ypred_sum)
 ```
 
 ```{r}
-ypred <- predict(mod_lik2, summary = F, nsamples = 500)
+observed <- prop.table(table(dat_fit$rating))
+predicted <- colMeans(ypred_sum)
+cbind(observed, predicted)
+```
 
+The difference, it turns out that the *marginal_effects()* call uses the population-level estimates **only**, while *predict()* **also** uses the group-level estimates. Let's verify this by a quick calculation, and then think about why this matters in this model. 
+
+*NOTE: We are usually much more interested in the predictions coming from the full model, so its in a sense much more important that they have good concordance with the data.  Part of this is an excuse to delve deeper into the nitty gritty of evaluating the model.*
+
+```{r}
+#extract the population level estimates
+estimates <- fixef(mod_lik2)
+estimates
 ```
 
 ```{r}
-str(ypred)
-```
+#keep the intercepts
+estimates <- estimates[1:6]
 
+#get cumulative probabilities
+prob_est <- pnorm(estimates)
+
+# add 1 for final category
+prob_est <- c(prob_est,1)
+prob_est
+```
 ```{r}
-ypred[1:5,1:10]
+#probailities of each response [for control condition]
+c(prob_est[1], diff(prob_est))
 ```
 
-Each original observation is now paired with 500 predictions. Or another way of thinking of this
+We see that these match the expected values in the left panel of the marginal effects plot.
 
-```{r}
-mean(ypred==7)
-```
+This is highly unusual. If we review the summary of the model, on thing that stands out is that we only have 3 levels of the item category. Most people doing multi-level modeling will probably tell you that is not ideal (but, importantly, its not a no-no either. 
 
-
-```{r}
-forest(mod_lik2, grouping = "item")
-```
-
-
-```{r}
-forest(mod_lik2, grouping = "item", pars = "Condition_fginger")
-```
-
+Let's plot the data for each item separately:
 ```{r}
 #items separately
 for (it in unique(dat_fit$item)){
@@ -477,14 +539,26 @@ for (it in unique(dat_fit$item)){
   plot_prop(dat = d_tmp, header = it,
             y_max = 1)
 }
-
 ```
 
+Responses to the items appear to be really different. Let's look at the fitted coefficients:
+
+```{r}
+ranef(mod_lik2)$item
+```
+
+Two things stand out: 
+
+1. There are **large** differences in the estimated intercept depending on item. (Remember, these are on a standard normal scale)  
+2. There are very **small** differences in the estimated slopes - which is the variable we care about in this analysis.  
+
+While not conclusive, it is hinting us that maybe we should look into this a bit more.
 
 ##Fitting an alternative model
 
+Here we refit the model but drop the varying effects for items. 
 
-```{r, results='hide', cache=T}
+```{r alt likert model, results='hide', cache=T}
 ff <- bf(rating ~ 1 + Condition_f +
            (1 + Condition_f | subject),
          family = cumulative("probit"))
@@ -523,30 +597,205 @@ mod_lik3 <- brm(ff,
 ```
 
 ```{r}
+pp_check(mod_lik4)
+```
+
+
+```{r}
 marginal_effects(mod_lik3, categorical = T)
 ```
 
+The marginal effects now resemble our expectations better. 
 
 ```{r}
 summary(mod_lik3)
 ```
 
+We can see that the estimated intercepts are very different now as well. 
 
+###Model comparison
 
-##Inference
+Which model should we do our inference on. This is tricky and there won't be just one answer. Here we will rely on model comparison via LOO-CV. 
 
 ```{r likert loo, message =F, warning = F, cache = T}
 loo_lik2 <- loo::loo(mod_lik2, cores = 3, reloo = T)
-loo_lik3 <- loo::loo(mod_lik2, cores = 3, reloo = T)
+loo_lik3 <- loo::loo(mod_lik3, cores = 3, reloo = T)
 ```
 
 ```{r}
 compare_ic(loo_lik2, loo_lik3)
 ```
 
+We see that our original model is preferred after all!
+
+Let's plot the category-wise predictions together with our data. 
+
+```{r}
+plot_prop(dat_fit, "data + model")
+
+c_pred <- colMeans(ypred_sum[dat_fit$Condition==0,])
+c_quant <- apply(ypred_sum[dat_fit$Condition==0,], 2, function(x) quantile(x, c(.25,.75)))
+points(x = seq(1,7)-.2, y= c_pred, 
+       pch = "X", cex = 1.8)
+segments(x0 = seq(1,7)-.2, 
+         y0 = c_quant[1,],
+         y1 = c_quant[2,],
+         lwd = 2)
+
+g_pred <- colMeans(ypred_sum[dat_fit$Condition==1,])
+g_quant <- apply(ypred_sum[dat_fit$Condition==1,], 2, function(x) quantile(x, c(.25,.75)))
+points(x = seq(1,7)+.2, y= g_pred,
+       pch = "X", cex = 1.8, col = "red")
+segments(x0 = seq(1,7)+.2, 
+         y0 = g_quant[1,],
+         y1 = g_quant[2,],
+         lwd = 2, col = "red")
+
+```
 
 
-#Appendix
+##Inference
+
+```{r}
+post <- posterior_samples(mod_lik2, "^b")
+q_97 <- quantile(post$b_Condition_fginger, c(0.015, 0.985))
+q_97
+```
+
+We can also calculate the posterior probability that the effect is less than 0:
+
+```{r}
+prob <- sum(post$b_Condition_fginger<0)/length(post$b_Condition_fginger)
+paste(prob*100,"% of samples are less than 0")
+```
+
+We can straightforwardly combine this information in a plot:
+
+```{r}
+mcmc_hist(post, "b_Condition_fginger", binwidth = 0.025) +
+  geom_vline(xintercept = 0, size = 1.5, linetype = "dashed") +
+  geom_segment(aes(x = q_97[1], xend = q_97[2], y = 5, yend = 5),
+               size = 1.5, colour = "yellow") +
+  annotate("text", 
+           x = mean(q_97), y = 30,
+           label = paste("97% CI: [", round(q_97[1],2), "," , round(q_97[2],2), "]" ),
+           colour = "yellow", fontface = 2) +
+  annotate("text",
+           x = -0.9, y = 300,
+           label = paste(prob*100,"% of samples \nare less than 0"),
+           fontface = 2)
+```
+
+With this method the answer to our question is maybe!
+
+Let's also assess with Bayes Factors.
+
+```{r}
+h <- hypothesis(mod_lik2, "Condition_fginger=0")
+h
+```
+```{r}
+plot(h)
+```
+
+With this method the answer is that it is as likely as it was before (see Appendix A for the effect of changing the prior)
+
+#Summary
+
+We have seen:
+
+- It is probably a good idea to analyze ordinal data using ordinal models
+- Finding a good model can take time
+- Taking the multi-level structure of our data into account, affects what we conclude about the data using the model
+
+
+#Appendix A : Priors and Bayes Factors
+
+
+```{r alt likert model alt prior, results='hide', cache=T}
+ff <- bf(rating ~ 1 + Condition_f +
+           (1 + Condition_f | subject),
+         family = cumulative("probit"))
+
+pp <- c(set_prior("normal(0,1)", class = "Intercept"),
+        set_prior("normal(0,0.1)", class = "b"),
+        set_prior("normal(0,0.5)", class = "sd", group = "subject", coef = "Intercept"),
+        set_prior("normal(0,0.15)", class = "sd", group = "subject", coef = "Condition_fginger"),
+        set_prior("lkj(3)", class = "cor"))
+
+tmp_dat <- make_standata(ff,
+                            data = dat_fit, 
+                         prior = pp)
+
+#a function of initial values
+initfun <- function() {
+  list(
+    b = array(rnorm(tmp_dat$K, 0, 0.1), dim = length(tmp_dat$K)),
+    temp_Intercept = seq(-2,2,length.out = tmp_dat$ncat-1) + rnorm(tmp_dat$ncat-1,0,0.1),
+    sd_1 = runif(tmp_dat$M_1, 0.5, 1),
+    z_1 = matrix(rnorm(tmp_dat$M_1*tmp_dat$N_1, 0, 0.01),
+                 tmp_dat$M_1, tmp_dat$N_1),
+    L_1 = diag(tmp_dat$M_1)
+  )
+}
+
+mod_lik4 <- brm(ff, 
+               data = dat_fit, prior = pp,
+               chains = 6, cores = n_cores,
+               iter = 4e3, warmup = 2e3,
+               inits = initfun,
+               sample_prior = T,
+               control= list(adapt_delta =0.98,
+                             max_treedepth = 15))
+
+```
+
+
+
+```{r}
+post <- posterior_samples(mod_lik4, "^b")
+q_97 <- quantile(post$b_Condition_fginger, c(0.015, 0.985))
+q_97
+```
+
+Very similar to before.
+
+```{r}
+prob <- sum(post$b_Condition_fginger<0)/length(post$b_Condition_fginger)
+paste(round(prob,2)*100,"% of samples are less than 0")
+```
+
+```{r}
+mcmc_hist(post, "b_Condition_fginger", binwidth = 0.025) +
+  geom_vline(xintercept = 0, size = 1.5, linetype = "dashed") +
+  geom_segment(aes(x = q_97[1], xend = q_97[2], y = 5, yend = 5),
+               size = 1.5, colour = "yellow") +
+  annotate("text", 
+           x = mean(q_97), y = 30,
+           label = paste("97% CI: [", round(q_97[1],2), "," , round(q_97[2],2), "]" ),
+           colour = "yellow", fontface = 2) +
+  annotate("text",
+           x = -0.9, y = 300,
+           label = paste(prob*100,"% of samples \nare less than 0"),
+           fontface = 2)
+```
+
+With this method the answer doesn't change much.
+
+Let's also assess with Bayes Factors.
+
+```{r}
+h <- hypothesis(mod_lik4, "Condition_fginger=0")
+h
+```
+```{r}
+plot(h)
+```
+
+With this method the answer BF is suddenly close to 2. Not super-strong evidence, but a different story than earlier.
+
+
+#Appendix B : Viewing Stan code
 
 Viewing Stan code.
 
@@ -592,4 +841,12 @@ initfun <- function() {
   )
 }
 ```
+
+```{r}
+#example of output
+initfun()
+```
+
+
+
 

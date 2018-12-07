@@ -305,8 +305,10 @@ div.tocify {
 </div>
 
 
+<p>This example invovles the use of ordinal models to fit Likert scale data, and additionally some of the trickier aspects of choosing a multilevel structure for ones data.</p>
 <div id="load-data-and-packages" class="section level1">
 <h1>Load data and packages</h1>
+<p>The data come from the first study reportd in a <a href="http://ubc-emotionlab.ca/wp-content/files_mf/tracystecklerheltzelinpressjpsp78.pdf">recent paper</a> investigating the role of disgust for moral judgments. Participants were divided into two conditions and either given ginger or placebo to eat. Roughly an hour later participants saw pictures depicting disgusting scenes and rated their disgust (1-7).</p>
 <pre class="r"><code>library(brms)
 library(bayesplot)
 library(kableExtra)
@@ -460,8 +462,8 @@ for (cond in unique(dat$valence)){
 }</code></pre>
 <p><img src="teting_files/figure-html/unnamed-chunk-10-1.png" width="672" /><img src="teting_files/figure-html/unnamed-chunk-10-2.png" width="672" /><img src="teting_files/figure-html/unnamed-chunk-10-3.png" width="672" /></p>
 </div>
-<div id="analysis-of-means" class="section level1">
-<h1>Analysis of means</h1>
+<div id="preliminaries-analysis-of-means" class="section level1">
+<h1>Preliminaries: Analysis of means</h1>
 <p>Since the authors use t-tests and Anovas in their original paper, we use multi-level models to test the hypothesis, ignoring for now the fact that ratings is ordinal.</p>
 <div id="reproducing-original-analysis" class="section level2">
 <h2>Reproducing original analysis</h2>
@@ -514,7 +516,7 @@ t.test(rating ~ condition, data = agg_1)</code></pre>
 </div>
 <div id="using-a-multi-level-gaussian-model-instead" class="section level2">
 <h2>Using a multi-level Gaussian model instead</h2>
-<p>Since the main results are reported for the medium items, let’s focus on that.</p>
+<p>Since the main results/effects are reported for the medium items, let’s focus on that. The point here is to show that the Gaussian model is a bad idea.</p>
 <p>We let condition slopes vary both by subject and stimulus item, and set some weakly informative regularizing priors.</p>
 <pre class="r"><code>dat$condition_c &lt;- ifelse(dat$Condition==1,0.5,-0.5)</code></pre>
 <pre class="r"><code>dat_fit &lt;- subset(dat, valence == &quot;medium&quot;)
@@ -555,16 +557,24 @@ fit_med &lt;- brm(formula = ff, data = dat_fit,
 ## 
 ## Group-Level Effects: 
 ## ~item (Number of levels: 3) 
-##                            Estimate Est.Error l-95% CI u-95% CI Eff.Sample Rhat
-## sd(Intercept)                  1.00      0.43     0.43     2.04       3664 1.00
-## sd(condition_c)                0.23      0.25     0.01     0.91       2656 1.00
-## cor(Intercept,condition_c)     0.04      0.37    -0.68     0.72       6398 1.00
+##                            Estimate Est.Error l-95% CI u-95% CI Eff.Sample
+## sd(Intercept)                  1.00      0.43     0.43     2.04       3664
+## sd(condition_c)                0.23      0.25     0.01     0.91       2656
+## cor(Intercept,condition_c)     0.04      0.37    -0.68     0.72       6398
+##                            Rhat
+## sd(Intercept)              1.00
+## sd(condition_c)            1.00
+## cor(Intercept,condition_c) 1.00
 ## 
 ## ~subject (Number of levels: 242) 
-##                            Estimate Est.Error l-95% CI u-95% CI Eff.Sample Rhat
-## sd(Intercept)                  0.77      0.11     0.52     0.94        317 1.01
-## sd(condition_c)                0.39      0.30     0.02     1.14        250 1.02
-## cor(Intercept,condition_c)     0.08      0.30    -0.55     0.65       4215 1.00
+##                            Estimate Est.Error l-95% CI u-95% CI Eff.Sample
+## sd(Intercept)                  0.77      0.11     0.52     0.94        317
+## sd(condition_c)                0.39      0.30     0.02     1.14        250
+## cor(Intercept,condition_c)     0.08      0.30    -0.55     0.65       4215
+##                            Rhat
+## sd(Intercept)              1.01
+## sd(condition_c)            1.02
+## cor(Intercept,condition_c) 1.00
 ## 
 ## Population-Level Effects: 
 ##             Estimate Est.Error l-95% CI u-95% CI Eff.Sample Rhat
@@ -593,8 +603,26 @@ mcmc_areas(post,
 </div>
 <div id="multi-level-ordinal-response-model" class="section level1">
 <h1>Multi-level ordinal response model</h1>
-<div id="prior-predictive-checks" class="section level2">
-<h2>Prior predictive checks</h2>
+<div id="selecting-a-model" class="section level2">
+<h2>Selecting a model</h2>
+<p><em>brms</em> supports several ordinal and category models. There is a recent <a href="https://osf.io/cu8jv/">tutorial paper</a> available that details this a bit more.</p>
+<p>Here we will use a simple model called the cumulative model (or graded response model), assuming that there is a continuous <em>latent</em> variable underlying participants responses. When the value of that underlying crosses certain thresholds this translates to the different ordinal responses observed. The model is cumulative since we can relate the thresholds to a cumulative distribution function, getting the probability of observing a response at least as high as that threshold. For this workshop we assume an underlying normal distributoin, leading to a <em>probit</em> model. Other choices are possible and the linked paper expands on this greatly.</p>
+<p>We can illustrate the probit and some hypothetical thresholds:</p>
+<pre class="r"><code>plot(NA, xlim=c(-3,3), ylim = c(0,1),
+      xlab = &quot;threshold&quot;, ylab = &quot;cumulative probability&quot;,
+      main=&quot;&quot;, cex.axis = 1.2, cex.lab = 1.4)
+cord.x &lt;- c(-.7,seq(-.7,1,0.01),1)
+cord.y &lt;- c(0,pnorm(seq(-.7,1,0.01)),0)
+polygon(cord.x,cord.y,col=&#39;steelblue&#39;, border = F)
+abline(v=c(-.7,1), col = &quot;darkblue&quot;, lty = 2, lwd=2)
+curve(pnorm, from = -3, to = 3, add=T, lwd=3)
+text(x = 0, y = 0.2, 
+     labels = paste(round(pnorm(1)-pnorm(-.7),2)*100,&quot;%&quot;),
+     col = &quot;white&quot;, cex = 1.5)</code></pre>
+<p><img src="teting_files/figure-html/unnamed-chunk-19-1.png" width="672" /></p>
+<p>When we estimate the model we will get <strong>N-1</strong> intercepts reflecting the thresholds for <strong>N</strong> categories. The thresholds are just deviates from a standard normal (z-scores). So to get the probability of a specific category we subtract the cumulative probability of one threshold from the one preceeding it.</p>
+<p>In the model we additionally formulate effects of variables we measured on the underlying latent variable, in forms of a regression equation. In this model it is assumed that that the effect is uniform over categories. Other ordinal models, however, allow for the estimation of category specific effects.</p>
+<p>After all that, the actual model formula is very simple:</p>
 <pre class="r"><code>dat_fit$Condition_f &lt;- factor(dat_fit$Condition, 
                               labels = c(&quot;control&quot;, &quot;ginger&quot;))
 
@@ -602,7 +630,12 @@ ff &lt;- bf(rating ~ 1 + Condition_f +
            (1 + Condition_f | subject) + 
            (1 + Condition_f | item),
          family = cumulative(&quot;probit&quot;))</code></pre>
-<pre class="r"><code>kable(get_prior(formula = ff,
+</div>
+<div id="prior-predictive-checks" class="section level2">
+<h2>Prior predictive checks</h2>
+<p>When we are fitting something considerably more complicated, it is extra important to check our modeling assumptions and our priors!</p>
+<pre class="r"><code>#what are our priors
+kable(get_prior(formula = ff,
           data = dat_fit)) %&gt;%
   kable_styling(c(&quot;striped&quot;, &quot;condensed&quot;), full_width = F)</code></pre>
 <table class="table table-striped table-condensed" style="width: auto !important; margin-left: auto; margin-right: auto;">
@@ -1020,6 +1053,7 @@ subject
 </tr>
 </tbody>
 </table>
+<p>There is some extra machinery to fit the model here, in that we specify a function to set initial values for the sampling process. To see how that connects with the underlying Stan code, see the Appendix.</p>
 <pre class="r"><code>pp &lt;- c(set_prior(&quot;normal(0,3)&quot;, class = &quot;Intercept&quot;),
         set_prior(&quot;normal(0,0.5)&quot;, class = &quot;b&quot;),
         set_prior(&quot;normal(0,1)&quot;, class = &quot;sd&quot;, group = &quot;item&quot;),
@@ -1048,17 +1082,15 @@ initfun &lt;- function() {
                inits = initfun,
                sample_prior = &quot;only&quot;)</code></pre>
 <pre><code>## Compiling the C++ model</code></pre>
+<pre><code>## recompiling to avoid crashing R session</code></pre>
 <pre><code>## Start sampling</code></pre>
-<pre><code>## Warning: There were 1 divergent transitions after warmup. Increasing adapt_delta above 0.8 may help. See
-## http://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup</code></pre>
-<pre><code>## Warning: There were 21 transitions after warmup that exceeded the maximum treedepth. Increase max_treedepth above 10. See
-## http://mc-stan.org/misc/warnings.html#maximum-treedepth-exceeded</code></pre>
-<pre><code>## Warning: Examine the pairs() plot to diagnose sampling problems</code></pre>
 <pre class="r"><code>marginal_effects(mod_lik_pr, categorical = T)</code></pre>
 <p><img src="teting_files/figure-html/unnamed-chunk-23-1.png" width="672" /></p>
 <pre class="r"><code>pp_check(mod_lik_pr)</code></pre>
 <pre><code>## Using 10 posterior samples for ppc type &#39;dens_overlay&#39; by default.</code></pre>
 <p><img src="teting_files/figure-html/unnamed-chunk-23-2.png" width="672" /></p>
+<p>Ok so this is not great.</p>
+<p>Below is what I ended up with after going back and forth and tweaking a bit.</p>
 <pre class="r"><code>pp &lt;- c(set_prior(&quot;normal(0,1)&quot;, class = &quot;Intercept&quot;),
         set_prior(&quot;normal(0,0.5)&quot;, class = &quot;b&quot;),
         set_prior(&quot;normal(0,1)&quot;, class = &quot;sd&quot;, group = &quot;item&quot;),
@@ -1072,18 +1104,17 @@ mod_lik_pr1 &lt;- brm(ff,
                inits = initfun,
                sample_prior = &quot;only&quot;)</code></pre>
 <pre><code>## Compiling the C++ model</code></pre>
+<pre><code>## recompiling to avoid crashing R session</code></pre>
 <pre><code>## Start sampling</code></pre>
-<pre><code>## Warning: There were 10 divergent transitions after warmup. Increasing adapt_delta above 0.8 may help. See
+<pre><code>## Warning: There were 3 divergent transitions after warmup. Increasing adapt_delta above 0.8 may help. See
 ## http://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup</code></pre>
-<pre><code>## Warning: There were 4 transitions after warmup that exceeded the maximum treedepth. Increase max_treedepth above 10. See
-## http://mc-stan.org/misc/warnings.html#maximum-treedepth-exceeded</code></pre>
 <pre><code>## Warning: Examine the pairs() plot to diagnose sampling problems</code></pre>
 <pre class="r"><code>marginal_effects(mod_lik_pr1, categorical = T)</code></pre>
-<p><img src="teting_files/figure-html/unnamed-chunk-25-1.png" width="672" /></p>
+<p><img src="teting_files/figure-html/unnamed-chunk-24-1.png" width="672" /></p>
 <pre class="r"><code>pp_check(mod_lik_pr1)</code></pre>
 <pre><code>## Using 10 posterior samples for ppc type &#39;dens_overlay&#39; by default.</code></pre>
-<p><img src="teting_files/figure-html/unnamed-chunk-25-2.png" width="672" /></p>
-<p>That looks reasonable.</p>
+<p><img src="teting_files/figure-html/unnamed-chunk-24-2.png" width="672" /></p>
+<p>That looks reasonable enough.</p>
 </div>
 <div id="fitting-the-model" class="section level2">
 <h2>Fitting the model</h2>
@@ -1097,20 +1128,23 @@ mod_lik_pr1 &lt;- brm(ff,
                control= list(adapt_delta =0.95,
                              max_treedepth = 15))</code></pre>
 <pre><code>## Compiling the C++ model</code></pre>
+<pre><code>## recompiling to avoid crashing R session</code></pre>
 <pre><code>## Start sampling</code></pre>
 </div>
 <div id="diagnostics" class="section level2">
 <h2>Diagnostics</h2>
+<p>Again we want to run diagnostics on our model to make sure it is sensible.</p>
 <pre class="r"><code>all_hats &lt;- rhat(mod_lik)
 mcmc_rhat_hist(all_hats)</code></pre>
 <pre><code>## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</code></pre>
-<p><img src="teting_files/figure-html/unnamed-chunk-27-1.png" width="672" /></p>
+<p><img src="teting_files/figure-html/unnamed-chunk-25-1.png" width="672" /></p>
 <pre class="r"><code>neffs &lt;- neff_ratio(mod_lik)
 mcmc_neff_hist(neffs, binwidth = 0.05)</code></pre>
-<p><img src="teting_files/figure-html/unnamed-chunk-28-1.png" width="672" /></p>
+<p><img src="teting_files/figure-html/unnamed-chunk-26-1.png" width="672" /></p>
 <pre class="r"><code># which parameters have low neff
 mcmc_neff(neffs[neffs&lt;0.1]) + yaxis_text(hjust = 1)</code></pre>
-<p><img src="teting_files/figure-html/unnamed-chunk-29-1.png" width="672" /></p>
+<p><img src="teting_files/figure-html/unnamed-chunk-27-1.png" width="672" /></p>
+<p>We see that the model is sampling really inefficiently for some parameters. To fix this we need to adjust the priors. Again, here I went back and forth adjusting priors and refitting the model until I was satisfied. The final results is below:</p>
 <pre class="r"><code>pp &lt;- c(set_prior(&quot;normal(0,1)&quot;, class = &quot;Intercept&quot;),
         set_prior(&quot;normal(0,0.5)&quot;, class = &quot;b&quot;),
         set_prior(&quot;normal(0,1)&quot;, class = &quot;sd&quot;, group = &quot;item&quot;),
@@ -1127,14 +1161,16 @@ mod_lik2 &lt;- brm(ff,
                control= list(adapt_delta =0.98,
                              max_treedepth = 15))</code></pre>
 <pre><code>## Compiling the C++ model</code></pre>
+<pre><code>## recompiling to avoid crashing R session</code></pre>
 <pre><code>## Start sampling</code></pre>
 <pre class="r"><code>neffs &lt;- neff_ratio(mod_lik2)
 mcmc_neff_hist(neffs, binwidth = 0.05)</code></pre>
-<p><img src="teting_files/figure-html/unnamed-chunk-31-1.png" width="672" /></p>
+<p><img src="teting_files/figure-html/unnamed-chunk-28-1.png" width="672" /></p>
 <p>And we’re good!</p>
 </div>
 <div id="posterior-predictive-checks" class="section level2">
 <h2>Posterior predictive checks</h2>
+<p>OK, let’s evaluate the posterior of the model.</p>
 <pre class="r"><code>summary(mod_lik2)</code></pre>
 <pre><code>##  Family: cumulative 
 ##   Links: mu = probit; disc = identity 
@@ -1146,76 +1182,119 @@ mcmc_neff_hist(neffs, binwidth = 0.05)</code></pre>
 ## Group-Level Effects: 
 ## ~item (Number of levels: 3) 
 ##                                  Estimate Est.Error l-95% CI u-95% CI Eff.Sample Rhat
-## sd(Intercept)                        0.93      0.41     0.37     1.95       7358 1.00
-## sd(Condition_fginger)                0.19      0.22     0.01     0.78       6112 1.00
-## cor(Intercept,Condition_fginger)     0.01      0.38    -0.70     0.70      16776 1.00
+## sd(Intercept)                        0.93      0.41     0.38     1.92       5913 1.00
+## sd(Condition_fginger)                0.19      0.22     0.01     0.80       6008 1.00
+## cor(Intercept,Condition_fginger)     0.01      0.38    -0.70     0.71      16323 1.00
 ## 
 ## ~subject (Number of levels: 242) 
 ##                                  Estimate Est.Error l-95% CI u-95% CI Eff.Sample Rhat
-## sd(Intercept)                        0.68      0.08     0.52     0.83       3996 1.00
-## sd(Condition_fginger)                0.12      0.09     0.00     0.34       2211 1.00
-## cor(Intercept,Condition_fginger)     0.08      0.35    -0.62     0.73      14076 1.00
+## sd(Intercept)                        0.68      0.08     0.52     0.83       3998 1.00
+## sd(Condition_fginger)                0.12      0.09     0.00     0.34       2366 1.00
+## cor(Intercept,Condition_fginger)     0.08      0.36    -0.61     0.72      14830 1.00
 ## 
 ## Population-Level Effects: 
 ##                   Estimate Est.Error l-95% CI u-95% CI Eff.Sample Rhat
-## Intercept[1]         -1.91      0.37    -2.56    -1.14       6481 1.00
-## Intercept[2]         -1.31      0.36    -1.94    -0.54       6472 1.00
-## Intercept[3]         -0.99      0.36    -1.62    -0.23       6458 1.00
-## Intercept[4]         -0.09      0.36    -0.72     0.68       6452 1.00
-## Intercept[5]          0.33      0.36    -0.30     1.10       6446 1.00
-## Intercept[6]          1.12      0.36     0.48     1.89       6383 1.00
-## Condition_fginger    -0.22      0.17    -0.56     0.12       5725 1.00
+## Intercept[1]         -1.92      0.36    -2.60    -1.17       5638 1.00
+## Intercept[2]         -1.32      0.36    -1.98    -0.58       5583 1.00
+## Intercept[3]         -1.01      0.36    -1.66    -0.27       5581 1.00
+## Intercept[4]         -0.11      0.36    -0.75     0.63       5592 1.00
+## Intercept[5]          0.32      0.36    -0.33     1.06       5558 1.00
+## Intercept[6]          1.11      0.36     0.45     1.86       5538 1.00
+## Condition_fginger    -0.22      0.17    -0.56     0.12       5717 1.00
 ## 
 ## Samples were drawn using sampling(NUTS). For each parameter, Eff.Sample 
 ## is a crude measure of effective sample size, and Rhat is the potential 
 ## scale reduction factor on split chains (at convergence, Rhat = 1).</code></pre>
 <pre class="r"><code>pp_check(mod_lik2)</code></pre>
 <pre><code>## Using 10 posterior samples for ppc type &#39;dens_overlay&#39; by default.</code></pre>
-<p><img src="teting_files/figure-html/unnamed-chunk-33-1.png" width="672" /></p>
+<p><img src="teting_files/figure-html/unnamed-chunk-30-1.png" width="672" /></p>
+<p>This looks very good (compare to gaussian model earlier!).</p>
 <pre class="r"><code>marginal_effects(mod_lik2, categorical = T)</code></pre>
-<p><img src="teting_files/figure-html/unnamed-chunk-34-1.png" width="672" /></p>
-<pre class="r"><code>ypred_sum &lt;- predict(mod_lik2)</code></pre>
-<pre class="r"><code>str(ypred_sum)</code></pre>
-<pre><code>##  num [1:725, 1:7] 0.001667 0.007167 0.005 0.00075 0.000167 ...
+<p><img src="teting_files/figure-html/unnamed-chunk-31-1.png" width="672" /></p>
+<p>On a first pass, this might seem reasonable, there looks like a small difference between categories and they vary in their expected probabilities. However, compare to the actual data:</p>
+<pre class="r"><code>plot_prop(dat_fit, &quot;the data&quot;)</code></pre>
+<p><img src="teting_files/figure-html/unnamed-chunk-32-1.png" width="672" /></p>
+<p>We see that the modal response is 7 and not 4 as in that plot. But we also saw in the first posterior density check that the model seems to be predicting the data. What is going on here?</p>
+<p>First we can verify that the model is predicting the data well:</p>
+<pre class="r"><code>ypred_sum &lt;- predict(mod_lik2)
+str(ypred_sum)</code></pre>
+<pre><code>##  num [1:725, 1:7] 0.001417 0.0075 0.007083 0.000667 0.000417 ...
 ##  - attr(*, &quot;dimnames&quot;)=List of 2
 ##   ..$ : NULL
 ##   ..$ : chr [1:7] &quot;P(Y = 1)&quot; &quot;P(Y = 2)&quot; &quot;P(Y = 3)&quot; &quot;P(Y = 4)&quot; ...</code></pre>
-<pre class="r"><code>ypred &lt;- predict(mod_lik2, summary = F, nsamples = 500)</code></pre>
-<pre class="r"><code>str(ypred)</code></pre>
-<pre><code>##  num [1:500, 1:725] 6 7 6 6 4 7 7 4 6 7 ...
-##  - attr(*, &quot;levels&quot;)= chr [1:7] &quot;1&quot; &quot;2&quot; &quot;3&quot; &quot;4&quot; ...</code></pre>
-<pre class="r"><code>ypred[1:5,1:10]</code></pre>
-<pre><code>##      [,1] [,2] [,3] [,4] [,5] [,6] [,7] [,8] [,9] [,10]
-## [1,]    6    7    7    7    7    6    7    4    7     7
-## [2,]    7    5    6    5    4    6    6    7    7     4
-## [3,]    6    2    7    7    7    5    7    7    7     7
-## [4,]    6    6    5    6    5    6    6    7    7     6
-## [5,]    4    4    6    7    7    6    6    7    6     7</code></pre>
-<p>Each original observation is now paired with 500 predictions. Or another way of thinking of this</p>
-<pre class="r"><code>mean(ypred==7)</code></pre>
-<pre><code>## [1] 0.3</code></pre>
-<pre class="r"><code>forest(mod_lik2, grouping = &quot;item&quot;)</code></pre>
-<pre><code>## Picking joint bandwidth of 0.0192</code></pre>
-<pre><code>## Picking joint bandwidth of 0.0288</code></pre>
-<pre><code>## Picking joint bandwidth of 0.0264</code></pre>
-<pre><code>## Picking joint bandwidth of 0.0257</code></pre>
-<pre><code>## Picking joint bandwidth of 0.0245</code></pre>
-<pre><code>## Picking joint bandwidth of 0.0243</code></pre>
-<pre><code>## Picking joint bandwidth of 0.0245</code></pre>
-<p><img src="teting_files/figure-html/unnamed-chunk-41-1.png" width="672" /></p>
-<pre class="r"><code>forest(mod_lik2, grouping = &quot;item&quot;, pars = &quot;Condition_fginger&quot;)</code></pre>
-<pre><code>## Picking joint bandwidth of 0.0192</code></pre>
-<p><img src="teting_files/figure-html/unnamed-chunk-42-1.png" width="672" /></p>
+<pre class="r"><code>observed &lt;- prop.table(table(dat_fit$rating))
+predicted &lt;- colMeans(ypred_sum)
+cbind(observed, predicted)</code></pre>
+<pre><code>##   observed predicted
+## 1    0.039     0.040
+## 2    0.058     0.057
+## 3    0.047     0.047
+## 4    0.207     0.206
+## 5    0.121     0.123
+## 6    0.228     0.227
+## 7    0.301     0.299</code></pre>
+<p>The difference, it turns out that the <em>marginal_effects()</em> call uses the population-level estimates <strong>only</strong>, while <em>predict()</em> <strong>also</strong> uses the group-level estimates. Let’s verify this by a quick calculation, and then think about why this matters in this model.</p>
+<p><em>NOTE: We are usually much more interested in the predictions coming from the full model, so its in a sense much more important that they have good concordance with the data. Part of this is an excuse to delve deeper into the nitty gritty of evaluating the model.</em></p>
+<pre class="r"><code>#extract the population level estimates
+estimates &lt;- fixef(mod_lik2)
+estimates</code></pre>
+<pre><code>##                   Estimate Est.Error  Q2.5 Q97.5
+## Intercept[1]         -1.92      0.36 -2.60 -1.17
+## Intercept[2]         -1.32      0.36 -1.98 -0.58
+## Intercept[3]         -1.01      0.36 -1.66 -0.27
+## Intercept[4]         -0.11      0.36 -0.75  0.63
+## Intercept[5]          0.32      0.36 -0.33  1.06
+## Intercept[6]          1.11      0.36  0.45  1.86
+## Condition_fginger    -0.22      0.17 -0.56  0.12</code></pre>
+<pre class="r"><code>#keep the intercepts
+estimates &lt;- estimates[1:6]
+
+#get cumulative probabilities
+prob_est &lt;- pnorm(estimates)
+
+# add 1 for final category
+prob_est &lt;- c(prob_est,1)
+prob_est</code></pre>
+<pre><code>## [1] 0.027 0.093 0.156 0.457 0.624 0.866 1.000</code></pre>
+<pre class="r"><code>#probailities of each response [for control condition]
+c(prob_est[1], diff(prob_est))</code></pre>
+<pre><code>## [1] 0.027 0.066 0.063 0.301 0.167 0.241 0.134</code></pre>
+<p>We see that these match the expected values in the left panel of the marginal effects plot.</p>
+<p>This is highly unusual. If we review the summary of the model, on thing that stands out is that we only have 3 levels of the item category. Most people doing multi-level modeling will probably tell you that is not ideal (but, importantly, its not a no-no either.</p>
+<p>Let’s plot the data for each item separately:</p>
 <pre class="r"><code>#items separately
 for (it in unique(dat_fit$item)){
   d_tmp &lt;- subset(dat, item == it)
   plot_prop(dat = d_tmp, header = it,
             y_max = 1)
 }</code></pre>
-<p><img src="teting_files/figure-html/unnamed-chunk-43-1.png" width="672" /><img src="teting_files/figure-html/unnamed-chunk-43-2.png" width="672" /><img src="teting_files/figure-html/unnamed-chunk-43-3.png" width="672" /></p>
+<p><img src="teting_files/figure-html/unnamed-chunk-38-1.png" width="672" /><img src="teting_files/figure-html/unnamed-chunk-38-2.png" width="672" /><img src="teting_files/figure-html/unnamed-chunk-38-3.png" width="672" /></p>
+<p>Responses to the items appear to be really different. Let’s look at the fitted coefficients:</p>
+<pre class="r"><code>ranef(mod_lik2)$item</code></pre>
+<pre><code>## , , Intercept
+## 
+##                            Estimate Est.Error   Q2.5 Q97.5
+## disgust.rottenmeat.disgust    -0.13      0.36 -0.765  0.62
+## disgust.sneeze.disgust         0.55      0.36 -0.095  1.31
+## disgust.snot.disgust           1.10      0.37  0.446  1.87
+## 
+## , , Condition_fginger
+## 
+##                            Estimate Est.Error  Q2.5 Q97.5
+## disgust.rottenmeat.disgust   -0.014      0.15 -0.34  0.31
+## disgust.sneeze.disgust        0.018      0.15 -0.29  0.36
+## disgust.snot.disgust          0.012      0.16 -0.32  0.37</code></pre>
+<p>Two things stand out:</p>
+<ol style="list-style-type: decimal">
+<li>There are <strong>large</strong> differences in the estimated intercept depending on item. (Remember, these are on a standard normal scale)<br />
+</li>
+<li>There are very <strong>small</strong> differences in the estimated slopes - which is the variable we care about in this analysis.</li>
+</ol>
+<p>While not conclusive, it is hinting us that maybe we should look into this a bit more.</p>
 </div>
 <div id="fitting-an-alternative-model" class="section level2">
 <h2>Fitting an alternative model</h2>
+<p>Here we refit the model but drop the varying effects for items.</p>
 <pre class="r"><code>ff &lt;- bf(rating ~ 1 + Condition_f +
            (1 + Condition_f | subject),
          family = cumulative(&quot;probit&quot;))
@@ -1251,9 +1330,14 @@ mod_lik3 &lt;- brm(ff,
                control= list(adapt_delta =0.98,
                              max_treedepth = 15))</code></pre>
 <pre><code>## Compiling the C++ model</code></pre>
+<pre><code>## recompiling to avoid crashing R session</code></pre>
 <pre><code>## Start sampling</code></pre>
+<pre class="r"><code>pp_check(mod_lik4)</code></pre>
+<pre><code>## Using 10 posterior samples for ppc type &#39;dens_overlay&#39; by default.</code></pre>
+<p><img src="teting_files/figure-html/unnamed-chunk-40-1.png" width="672" /></p>
 <pre class="r"><code>marginal_effects(mod_lik3, categorical = T)</code></pre>
-<p><img src="teting_files/figure-html/unnamed-chunk-45-1.png" width="672" /></p>
+<p><img src="teting_files/figure-html/unnamed-chunk-41-1.png" width="672" /></p>
+<p>The marginal effects now resemble our expectations better.</p>
 <pre class="r"><code>summary(mod_lik3)</code></pre>
 <pre><code>##  Family: cumulative 
 ##   Links: mu = probit; disc = identity 
@@ -1265,37 +1349,184 @@ mod_lik3 &lt;- brm(ff,
 ## Group-Level Effects: 
 ## ~subject (Number of levels: 242) 
 ##                                  Estimate Est.Error l-95% CI u-95% CI Eff.Sample Rhat
-## sd(Intercept)                        0.47      0.08     0.30     0.62       2944 1.00
-## sd(Condition_fginger)                0.12      0.09     0.00     0.34       2986 1.00
-## cor(Intercept,Condition_fginger)     0.05      0.36    -0.64     0.71      16629 1.00
+## sd(Intercept)                        0.46      0.08     0.30     0.62       2671 1.00
+## sd(Condition_fginger)                0.12      0.09     0.01     0.34       2717 1.00
+## cor(Intercept,Condition_fginger)     0.05      0.36    -0.63     0.72      12363 1.00
 ## 
 ## Population-Level Effects: 
 ##                   Estimate Est.Error l-95% CI u-95% CI Eff.Sample Rhat
-## Intercept[1]         -2.04      0.12    -2.27    -1.82       8732 1.00
-## Intercept[2]         -1.53      0.10    -1.72    -1.35       9552 1.00
-## Intercept[3]         -1.27      0.09    -1.44    -1.10      10186 1.00
-## Intercept[4]         -0.52      0.08    -0.68    -0.37      13044 1.00
-## Intercept[5]         -0.17      0.08    -0.32    -0.02      13342 1.00
-## Intercept[6]          0.50      0.08     0.34     0.65      12602 1.00
-## Condition_fginger    -0.18      0.10    -0.38     0.00      13307 1.00
+## Intercept[1]         -2.04      0.12    -2.27    -1.82       8760 1.00
+## Intercept[2]         -1.53      0.10    -1.72    -1.34      10048 1.00
+## Intercept[3]         -1.27      0.09    -1.44    -1.09      10561 1.00
+## Intercept[4]         -0.52      0.08    -0.68    -0.37      12054 1.00
+## Intercept[5]         -0.17      0.08    -0.32    -0.02      12413 1.00
+## Intercept[6]          0.49      0.08     0.34     0.65      11844 1.00
+## Condition_fginger    -0.19      0.10    -0.38     0.01      10916 1.00
 ## 
 ## Samples were drawn using sampling(NUTS). For each parameter, Eff.Sample 
 ## is a crude measure of effective sample size, and Rhat is the potential 
 ## scale reduction factor on split chains (at convergence, Rhat = 1).</code></pre>
+<p>We can see that the estimated intercepts are very different now as well.</p>
+<div id="model-comparison" class="section level3">
+<h3>Model comparison</h3>
+<p>Which model should we do our inference on. This is tricky and there won’t be just one answer. Here we will rely on model comparison via LOO-CV.</p>
+<pre class="r"><code>loo_lik2 &lt;- loo::loo(mod_lik2, cores = 3, reloo = T)
+loo_lik3 &lt;- loo::loo(mod_lik3, cores = 3, reloo = T)</code></pre>
+<pre class="r"><code>compare_ic(loo_lik2, loo_lik3)</code></pre>
+<pre><code>##                     LOOIC SE
+## mod_lik2             2292 39
+## mod_lik3             2459 36
+## mod_lik2 - mod_lik3  -168 23</code></pre>
+<p>We see that our original model is preferred after all!</p>
+<p>Let’s plot the category-wise predictions together with our data.</p>
+<pre class="r"><code>plot_prop(dat_fit, &quot;data + model&quot;)
+
+c_pred &lt;- colMeans(ypred_sum[dat_fit$Condition==0,])
+c_quant &lt;- apply(ypred_sum[dat_fit$Condition==0,], 2, function(x) quantile(x, c(.25,.75)))
+points(x = seq(1,7)-.2, y= c_pred, 
+       pch = &quot;X&quot;, cex = 1.8)
+segments(x0 = seq(1,7)-.2, 
+         y0 = c_quant[1,],
+         y1 = c_quant[2,],
+         lwd = 2)
+
+g_pred &lt;- colMeans(ypred_sum[dat_fit$Condition==1,])
+g_quant &lt;- apply(ypred_sum[dat_fit$Condition==1,], 2, function(x) quantile(x, c(.25,.75)))
+points(x = seq(1,7)+.2, y= g_pred,
+       pch = &quot;X&quot;, cex = 1.8, col = &quot;red&quot;)
+segments(x0 = seq(1,7)+.2, 
+         y0 = g_quant[1,],
+         y1 = g_quant[2,],
+         lwd = 2, col = &quot;red&quot;)</code></pre>
+<p><img src="teting_files/figure-html/unnamed-chunk-44-1.png" width="672" /></p>
+</div>
 </div>
 <div id="inference" class="section level2">
 <h2>Inference</h2>
-<pre class="r"><code>loo_lik2 &lt;- loo::loo(mod_lik2, cores = 3, reloo = T)
-loo_lik3 &lt;- loo::loo(mod_lik2, cores = 3, reloo = T)</code></pre>
-<pre class="r"><code>compare_ic(loo_lik2, loo_lik3)</code></pre>
-<pre><code>##                     LOOIC SE
-## mod_lik2             2293 39
-## mod_lik2             2293 39
-## mod_lik2 - mod_lik2     0  0</code></pre>
+<pre class="r"><code>post &lt;- posterior_samples(mod_lik2, &quot;^b&quot;)
+q_97 &lt;- quantile(post$b_Condition_fginger, c(0.015, 0.985))
+q_97</code></pre>
+<pre><code>##  1.5%   98% 
+## -0.63  0.17</code></pre>
+<p>We can also calculate the posterior probability that the effect is less than 0:</p>
+<pre class="r"><code>prob &lt;- sum(post$b_Condition_fginger&lt;0)/length(post$b_Condition_fginger)
+paste(prob*100,&quot;% of samples are less than 0&quot;)</code></pre>
+<pre><code>## [1] &quot;91.7416666666667 % of samples are less than 0&quot;</code></pre>
+<p>We can straightforwardly combine this information in a plot:</p>
+<pre class="r"><code>mcmc_hist(post, &quot;b_Condition_fginger&quot;, binwidth = 0.025) +
+  geom_vline(xintercept = 0, size = 1.5, linetype = &quot;dashed&quot;) +
+  geom_segment(aes(x = q_97[1], xend = q_97[2], y = 5, yend = 5),
+               size = 1.5, colour = &quot;yellow&quot;) +
+  annotate(&quot;text&quot;, 
+           x = mean(q_97), y = 30,
+           label = paste(&quot;97% CI: [&quot;, round(q_97[1],2), &quot;,&quot; , round(q_97[2],2), &quot;]&quot; ),
+           colour = &quot;yellow&quot;, fontface = 2) +
+  annotate(&quot;text&quot;,
+           x = -0.9, y = 300,
+           label = paste(prob*100,&quot;% of samples \nare less than 0&quot;),
+           fontface = 2)</code></pre>
+<p><img src="teting_files/figure-html/unnamed-chunk-47-1.png" width="672" /></p>
+<p>With this method the answer to our question is maybe!</p>
+<p>Let’s also assess with Bayes Factors.</p>
+<pre class="r"><code>h &lt;- hypothesis(mod_lik2, &quot;Condition_fginger=0&quot;)
+h</code></pre>
+<pre><code>## Hypothesis Tests for class b:
+##                Hypothesis Estimate Est.Error CI.Lower CI.Upper Evid.Ratio Post.Prob Star
+## 1 (Condition_fginger) = 0    -0.22      0.17    -0.56     0.12        1.1      0.53     
+## ---
+## &#39;*&#39;: The expected value under the hypothesis lies outside the 95%-CI.
+## Posterior probabilities of point hypotheses assume equal prior probabilities.</code></pre>
+<pre class="r"><code>plot(h)</code></pre>
+<p><img src="teting_files/figure-html/unnamed-chunk-49-1.png" width="672" /></p>
+<p>With this method the answer is that it is as likely as it was before (see Appendix A for the effect of changing the prior)</p>
 </div>
 </div>
-<div id="appendix" class="section level1">
-<h1>Appendix</h1>
+<div id="summary" class="section level1">
+<h1>Summary</h1>
+<p>We have seen:</p>
+<ul>
+<li>It is probably a good idea to analyze ordinal data using ordinal models</li>
+<li>Finding a good model can take time</li>
+<li>Taking the multi-level structure of our data into account, affects what we conclude about the data using the model</li>
+</ul>
+</div>
+<div id="appendix-a-priors-and-bayes-factors" class="section level1">
+<h1>Appendix A : Priors and Bayes Factors</h1>
+<pre class="r"><code>ff &lt;- bf(rating ~ 1 + Condition_f +
+           (1 + Condition_f | subject),
+         family = cumulative(&quot;probit&quot;))
+
+pp &lt;- c(set_prior(&quot;normal(0,1)&quot;, class = &quot;Intercept&quot;),
+        set_prior(&quot;normal(0,0.1)&quot;, class = &quot;b&quot;),
+        set_prior(&quot;normal(0,0.5)&quot;, class = &quot;sd&quot;, group = &quot;subject&quot;, coef = &quot;Intercept&quot;),
+        set_prior(&quot;normal(0,0.15)&quot;, class = &quot;sd&quot;, group = &quot;subject&quot;, coef = &quot;Condition_fginger&quot;),
+        set_prior(&quot;lkj(3)&quot;, class = &quot;cor&quot;))
+
+tmp_dat &lt;- make_standata(ff,
+                            data = dat_fit, 
+                         prior = pp)
+
+#a function of initial values
+initfun &lt;- function() {
+  list(
+    b = array(rnorm(tmp_dat$K, 0, 0.1), dim = length(tmp_dat$K)),
+    temp_Intercept = seq(-2,2,length.out = tmp_dat$ncat-1) + rnorm(tmp_dat$ncat-1,0,0.1),
+    sd_1 = runif(tmp_dat$M_1, 0.5, 1),
+    z_1 = matrix(rnorm(tmp_dat$M_1*tmp_dat$N_1, 0, 0.01),
+                 tmp_dat$M_1, tmp_dat$N_1),
+    L_1 = diag(tmp_dat$M_1)
+  )
+}
+
+mod_lik4 &lt;- brm(ff, 
+               data = dat_fit, prior = pp,
+               chains = 6, cores = n_cores,
+               iter = 4e3, warmup = 2e3,
+               inits = initfun,
+               sample_prior = T,
+               control= list(adapt_delta =0.98,
+                             max_treedepth = 15))</code></pre>
+<pre><code>## Compiling the C++ model</code></pre>
+<pre><code>## recompiling to avoid crashing R session</code></pre>
+<pre><code>## Start sampling</code></pre>
+<pre class="r"><code>post &lt;- posterior_samples(mod_lik4, &quot;^b&quot;)
+q_97 &lt;- quantile(post$b_Condition_fginger, c(0.015, 0.985))
+q_97</code></pre>
+<pre><code>##   1.5%    98% 
+## -0.253  0.062</code></pre>
+<p>Very similar to before.</p>
+<pre class="r"><code>prob &lt;- sum(post$b_Condition_fginger&lt;0)/length(post$b_Condition_fginger)
+paste(round(prob,2)*100,&quot;% of samples are less than 0&quot;)</code></pre>
+<pre><code>## [1] &quot;91 % of samples are less than 0&quot;</code></pre>
+<pre class="r"><code>mcmc_hist(post, &quot;b_Condition_fginger&quot;, binwidth = 0.025) +
+  geom_vline(xintercept = 0, size = 1.5, linetype = &quot;dashed&quot;) +
+  geom_segment(aes(x = q_97[1], xend = q_97[2], y = 5, yend = 5),
+               size = 1.5, colour = &quot;yellow&quot;) +
+  annotate(&quot;text&quot;, 
+           x = mean(q_97), y = 30,
+           label = paste(&quot;97% CI: [&quot;, round(q_97[1],2), &quot;,&quot; , round(q_97[2],2), &quot;]&quot; ),
+           colour = &quot;yellow&quot;, fontface = 2) +
+  annotate(&quot;text&quot;,
+           x = -0.9, y = 300,
+           label = paste(prob*100,&quot;% of samples \nare less than 0&quot;),
+           fontface = 2)</code></pre>
+<p><img src="teting_files/figure-html/unnamed-chunk-52-1.png" width="672" /></p>
+<p>With this method the answer doesn’t change much.</p>
+<p>Let’s also assess with Bayes Factors.</p>
+<pre class="r"><code>h &lt;- hypothesis(mod_lik4, &quot;Condition_fginger=0&quot;)
+h</code></pre>
+<pre><code>## Hypothesis Tests for class b:
+##                Hypothesis Estimate Est.Error CI.Lower CI.Upper Evid.Ratio Post.Prob Star
+## 1 (Condition_fginger) = 0     -0.1      0.07    -0.23     0.05       0.58      0.37     
+## ---
+## &#39;*&#39;: The expected value under the hypothesis lies outside the 95%-CI.
+## Posterior probabilities of point hypotheses assume equal prior probabilities.</code></pre>
+<pre class="r"><code>plot(h)</code></pre>
+<p><img src="teting_files/figure-html/unnamed-chunk-54-1.png" width="672" /></p>
+<p>With this method the answer BF is suddenly close to 2. Not super-strong evidence, but a different story than earlier.</p>
+</div>
+<div id="appendix-b-viewing-stan-code" class="section level1">
+<h1>Appendix B : Viewing Stan code</h1>
 <p>Viewing Stan code.</p>
 <pre class="r"><code>ff &lt;- bf(rating ~ 1 + Condition_f +
            (1 + Condition_f | subject) + 
@@ -1488,6 +1719,26 @@ str(tmp_dat, 1, give.attr = FALSE)</code></pre>
     L_1 = diag(tmp_dat$M_1)
   )
 }</code></pre>
+<pre class="r"><code>#example of output
+initfun()</code></pre>
+<pre><code>## $b
+## [1] 0.015
+## 
+## $temp_Intercept
+## [1] -2.02 -1.17 -0.41  0.62  1.12  1.90
+## 
+## $sd_1
+## [1] 0.65 0.57
+## 
+## $z_1
+##        [,1]    [,2]    [,3]
+## [1,]  0.003 -0.0099  0.0063
+## [2,] -0.021 -0.0064 -0.0061
+## 
+## $L_1
+##      [,1] [,2]
+## [1,]    1    0
+## [2,]    0    1</code></pre>
 </div>
 
 

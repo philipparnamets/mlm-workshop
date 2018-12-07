@@ -5,3 +5,9 @@ output: html_document
 
 Further reading.
 
+
+Books on bayes
+
+Stuff about priors
+
+Useful packages
