@@ -597,11 +597,6 @@ mod_lik3 <- brm(ff,
 ```
 
 ```{r}
-pp_check(mod_lik4)
-```
-
-
-```{r}
 marginal_effects(mod_lik3, categorical = T)
 ```
 

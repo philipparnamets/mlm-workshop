@@ -1108,6 +1108,8 @@ mod_lik_pr1 &lt;- brm(ff,
 <pre><code>## Start sampling</code></pre>
 <pre><code>## Warning: There were 3 divergent transitions after warmup. Increasing adapt_delta above 0.8 may help. See
 ## http://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup</code></pre>
+<pre><code>## Warning: There were 38 transitions after warmup that exceeded the maximum treedepth. Increase max_treedepth above 10. See
+## http://mc-stan.org/misc/warnings.html#maximum-treedepth-exceeded</code></pre>
 <pre><code>## Warning: Examine the pairs() plot to diagnose sampling problems</code></pre>
 <pre class="r"><code>marginal_effects(mod_lik_pr1, categorical = T)</code></pre>
 <p><img src="teting_files/figure-html/unnamed-chunk-24-1.png" width="672" /></p>
@@ -1181,26 +1183,34 @@ mcmc_neff_hist(neffs, binwidth = 0.05)</code></pre>
 ## 
 ## Group-Level Effects: 
 ## ~item (Number of levels: 3) 
-##                                  Estimate Est.Error l-95% CI u-95% CI Eff.Sample Rhat
-## sd(Intercept)                        0.93      0.41     0.38     1.92       5913 1.00
-## sd(Condition_fginger)                0.19      0.22     0.01     0.80       6008 1.00
-## cor(Intercept,Condition_fginger)     0.01      0.38    -0.70     0.71      16323 1.00
+##                                  Estimate Est.Error l-95% CI u-95% CI
+## sd(Intercept)                        0.93      0.41     0.37     1.93
+## sd(Condition_fginger)                0.19      0.21     0.00     0.79
+## cor(Intercept,Condition_fginger)     0.01      0.38    -0.71     0.71
+##                                  Eff.Sample Rhat
+## sd(Intercept)                          7959 1.00
+## sd(Condition_fginger)                  7320 1.00
+## cor(Intercept,Condition_fginger)      21630 1.00
 ## 
 ## ~subject (Number of levels: 242) 
-##                                  Estimate Est.Error l-95% CI u-95% CI Eff.Sample Rhat
-## sd(Intercept)                        0.68      0.08     0.52     0.83       3998 1.00
-## sd(Condition_fginger)                0.12      0.09     0.00     0.34       2366 1.00
-## cor(Intercept,Condition_fginger)     0.08      0.36    -0.61     0.72      14830 1.00
+##                                  Estimate Est.Error l-95% CI u-95% CI
+## sd(Intercept)                        0.68      0.08     0.52     0.83
+## sd(Condition_fginger)                0.12      0.09     0.01     0.33
+## cor(Intercept,Condition_fginger)     0.08      0.36    -0.62     0.73
+##                                  Eff.Sample Rhat
+## sd(Intercept)                          4136 1.00
+## sd(Condition_fginger)                  2602 1.00
+## cor(Intercept,Condition_fginger)      15562 1.00
 ## 
 ## Population-Level Effects: 
 ##                   Estimate Est.Error l-95% CI u-95% CI Eff.Sample Rhat
-## Intercept[1]         -1.92      0.36    -2.60    -1.17       5638 1.00
-## Intercept[2]         -1.32      0.36    -1.98    -0.58       5583 1.00
-## Intercept[3]         -1.01      0.36    -1.66    -0.27       5581 1.00
-## Intercept[4]         -0.11      0.36    -0.75     0.63       5592 1.00
-## Intercept[5]          0.32      0.36    -0.33     1.06       5558 1.00
-## Intercept[6]          1.11      0.36     0.45     1.86       5538 1.00
-## Condition_fginger    -0.22      0.17    -0.56     0.12       5717 1.00
+## Intercept[1]         -1.93      0.36    -2.59    -1.17       7823 1.00
+## Intercept[2]         -1.32      0.36    -1.97    -0.57       7915 1.00
+## Intercept[3]         -1.01      0.36    -1.66    -0.26       7973 1.00
+## Intercept[4]         -0.11      0.36    -0.75     0.64       7934 1.00
+## Intercept[5]          0.32      0.36    -0.33     1.07       7930 1.00
+## Intercept[6]          1.10      0.36     0.45     1.87       7856 1.00
+## Condition_fginger    -0.22      0.17    -0.55     0.12       7944 1.00
 ## 
 ## Samples were drawn using sampling(NUTS). For each parameter, Eff.Sample 
 ## is a crude measure of effective sample size, and Rhat is the potential 
@@ -1218,7 +1228,7 @@ mcmc_neff_hist(neffs, binwidth = 0.05)</code></pre>
 <p>First we can verify that the model is predicting the data well:</p>
 <pre class="r"><code>ypred_sum &lt;- predict(mod_lik2)
 str(ypred_sum)</code></pre>
-<pre><code>##  num [1:725, 1:7] 0.001417 0.0075 0.007083 0.000667 0.000417 ...
+<pre><code>##  num [1:725, 1:7] 0.0015 0.006917 0.005333 0.001083 0.000667 ...
 ##  - attr(*, &quot;dimnames&quot;)=List of 2
 ##   ..$ : NULL
 ##   ..$ : chr [1:7] &quot;P(Y = 1)&quot; &quot;P(Y = 2)&quot; &quot;P(Y = 3)&quot; &quot;P(Y = 4)&quot; ...</code></pre>
@@ -1239,13 +1249,13 @@ cbind(observed, predicted)</code></pre>
 estimates &lt;- fixef(mod_lik2)
 estimates</code></pre>
 <pre><code>##                   Estimate Est.Error  Q2.5 Q97.5
-## Intercept[1]         -1.92      0.36 -2.60 -1.17
-## Intercept[2]         -1.32      0.36 -1.98 -0.58
-## Intercept[3]         -1.01      0.36 -1.66 -0.27
-## Intercept[4]         -0.11      0.36 -0.75  0.63
-## Intercept[5]          0.32      0.36 -0.33  1.06
-## Intercept[6]          1.11      0.36  0.45  1.86
-## Condition_fginger    -0.22      0.17 -0.56  0.12</code></pre>
+## Intercept[1]         -1.93      0.36 -2.59 -1.17
+## Intercept[2]         -1.32      0.36 -1.97 -0.57
+## Intercept[3]         -1.01      0.36 -1.66 -0.26
+## Intercept[4]         -0.11      0.36 -0.75  0.64
+## Intercept[5]          0.32      0.36 -0.33  1.07
+## Intercept[6]          1.10      0.36  0.45  1.87
+## Condition_fginger    -0.22      0.17 -0.55  0.12</code></pre>
 <pre class="r"><code>#keep the intercepts
 estimates &lt;- estimates[1:6]
 
@@ -1255,10 +1265,10 @@ prob_est &lt;- pnorm(estimates)
 # add 1 for final category
 prob_est &lt;- c(prob_est,1)
 prob_est</code></pre>
-<pre><code>## [1] 0.027 0.093 0.156 0.457 0.624 0.866 1.000</code></pre>
+<pre><code>## [1] 0.027 0.093 0.156 0.457 0.624 0.865 1.000</code></pre>
 <pre class="r"><code>#probailities of each response [for control condition]
 c(prob_est[1], diff(prob_est))</code></pre>
-<pre><code>## [1] 0.027 0.066 0.063 0.301 0.167 0.241 0.134</code></pre>
+<pre><code>## [1] 0.027 0.066 0.063 0.301 0.167 0.241 0.135</code></pre>
 <p>We see that these match the expected values in the left panel of the marginal effects plot.</p>
 <p>This is highly unusual. If we review the summary of the model, on thing that stands out is that we only have 3 levels of the item category. Most people doing multi-level modeling will probably tell you that is not ideal (but, importantly, its not a no-no either.</p>
 <p>Let’s plot the data for each item separately:</p>
@@ -1274,16 +1284,16 @@ for (it in unique(dat_fit$item)){
 <pre><code>## , , Intercept
 ## 
 ##                            Estimate Est.Error   Q2.5 Q97.5
-## disgust.rottenmeat.disgust    -0.13      0.36 -0.765  0.62
-## disgust.sneeze.disgust         0.55      0.36 -0.095  1.31
-## disgust.snot.disgust           1.10      0.37  0.446  1.87
+## disgust.rottenmeat.disgust    -0.13      0.36 -0.766  0.62
+## disgust.sneeze.disgust         0.55      0.36 -0.093  1.31
+## disgust.snot.disgust           1.10      0.37  0.445  1.87
 ## 
 ## , , Condition_fginger
 ## 
 ##                            Estimate Est.Error  Q2.5 Q97.5
-## disgust.rottenmeat.disgust   -0.014      0.15 -0.34  0.31
-## disgust.sneeze.disgust        0.018      0.15 -0.29  0.36
-## disgust.snot.disgust          0.012      0.16 -0.32  0.37</code></pre>
+## disgust.rottenmeat.disgust  -0.0164      0.15 -0.35  0.29
+## disgust.sneeze.disgust       0.0177      0.15 -0.30  0.37
+## disgust.snot.disgust         0.0097      0.16 -0.33  0.36</code></pre>
 <p>Two things stand out:</p>
 <ol style="list-style-type: decimal">
 <li>There are <strong>large</strong> differences in the estimated intercept depending on item. (Remember, these are on a standard normal scale)<br />
@@ -1330,13 +1340,9 @@ mod_lik3 &lt;- brm(ff,
                control= list(adapt_delta =0.98,
                              max_treedepth = 15))</code></pre>
 <pre><code>## Compiling the C++ model</code></pre>
-<pre><code>## recompiling to avoid crashing R session</code></pre>
 <pre><code>## Start sampling</code></pre>
-<pre class="r"><code>pp_check(mod_lik4)</code></pre>
-<pre><code>## Using 10 posterior samples for ppc type &#39;dens_overlay&#39; by default.</code></pre>
-<p><img src="teting_files/figure-html/unnamed-chunk-40-1.png" width="672" /></p>
 <pre class="r"><code>marginal_effects(mod_lik3, categorical = T)</code></pre>
-<p><img src="teting_files/figure-html/unnamed-chunk-41-1.png" width="672" /></p>
+<p><img src="teting_files/figure-html/unnamed-chunk-40-1.png" width="672" /></p>
 <p>The marginal effects now resemble our expectations better.</p>
 <pre class="r"><code>summary(mod_lik3)</code></pre>
 <pre><code>##  Family: cumulative 
@@ -1348,20 +1354,24 @@ mod_lik3 &lt;- brm(ff,
 ## 
 ## Group-Level Effects: 
 ## ~subject (Number of levels: 242) 
-##                                  Estimate Est.Error l-95% CI u-95% CI Eff.Sample Rhat
-## sd(Intercept)                        0.46      0.08     0.30     0.62       2671 1.00
-## sd(Condition_fginger)                0.12      0.09     0.01     0.34       2717 1.00
-## cor(Intercept,Condition_fginger)     0.05      0.36    -0.63     0.72      12363 1.00
+##                                  Estimate Est.Error l-95% CI u-95% CI
+## sd(Intercept)                        0.47      0.08     0.30     0.62
+## sd(Condition_fginger)                0.12      0.09     0.00     0.33
+## cor(Intercept,Condition_fginger)     0.05      0.35    -0.63     0.70
+##                                  Eff.Sample Rhat
+## sd(Intercept)                          2927 1.00
+## sd(Condition_fginger)                  2947 1.00
+## cor(Intercept,Condition_fginger)      13218 1.00
 ## 
 ## Population-Level Effects: 
 ##                   Estimate Est.Error l-95% CI u-95% CI Eff.Sample Rhat
-## Intercept[1]         -2.04      0.12    -2.27    -1.82       8760 1.00
-## Intercept[2]         -1.53      0.10    -1.72    -1.34      10048 1.00
-## Intercept[3]         -1.27      0.09    -1.44    -1.09      10561 1.00
-## Intercept[4]         -0.52      0.08    -0.68    -0.37      12054 1.00
-## Intercept[5]         -0.17      0.08    -0.32    -0.02      12413 1.00
-## Intercept[6]          0.49      0.08     0.34     0.65      11844 1.00
-## Condition_fginger    -0.19      0.10    -0.38     0.01      10916 1.00
+## Intercept[1]         -2.04      0.12    -2.28    -1.82       8696 1.00
+## Intercept[2]         -1.53      0.10    -1.72    -1.34      10191 1.00
+## Intercept[3]         -1.27      0.09    -1.45    -1.09      11053 1.00
+## Intercept[4]         -0.52      0.08    -0.68    -0.37      13284 1.00
+## Intercept[5]         -0.17      0.08    -0.33    -0.02      14264 1.00
+## Intercept[6]          0.49      0.08     0.34     0.65      11823 1.00
+## Condition_fginger    -0.18      0.10    -0.38     0.01      12366 1.00
 ## 
 ## Samples were drawn using sampling(NUTS). For each parameter, Eff.Sample 
 ## is a crude measure of effective sample size, and Rhat is the potential 
@@ -1375,7 +1385,7 @@ loo_lik3 &lt;- loo::loo(mod_lik3, cores = 3, reloo = T)</code></pre>
 <pre class="r"><code>compare_ic(loo_lik2, loo_lik3)</code></pre>
 <pre><code>##                     LOOIC SE
 ## mod_lik2             2292 39
-## mod_lik3             2459 36
+## mod_lik3             2460 36
 ## mod_lik2 - mod_lik3  -168 23</code></pre>
 <p>We see that our original model is preferred after all!</p>
 <p>Let’s plot the category-wise predictions together with our data.</p>
@@ -1398,7 +1408,7 @@ segments(x0 = seq(1,7)+.2,
          y0 = g_quant[1,],
          y1 = g_quant[2,],
          lwd = 2, col = &quot;red&quot;)</code></pre>
-<p><img src="teting_files/figure-html/unnamed-chunk-44-1.png" width="672" /></p>
+<p><img src="teting_files/figure-html/unnamed-chunk-43-1.png" width="672" /></p>
 </div>
 </div>
 <div id="inference" class="section level2">
@@ -1407,11 +1417,11 @@ segments(x0 = seq(1,7)+.2,
 q_97 &lt;- quantile(post$b_Condition_fginger, c(0.015, 0.985))
 q_97</code></pre>
 <pre><code>##  1.5%   98% 
-## -0.63  0.17</code></pre>
+## -0.60  0.18</code></pre>
 <p>We can also calculate the posterior probability that the effect is less than 0:</p>
 <pre class="r"><code>prob &lt;- sum(post$b_Condition_fginger&lt;0)/length(post$b_Condition_fginger)
 paste(prob*100,&quot;% of samples are less than 0&quot;)</code></pre>
-<pre><code>## [1] &quot;91.7416666666667 % of samples are less than 0&quot;</code></pre>
+<pre><code>## [1] &quot;91.4416666666667 % of samples are less than 0&quot;</code></pre>
 <p>We can straightforwardly combine this information in a plot:</p>
 <pre class="r"><code>mcmc_hist(post, &quot;b_Condition_fginger&quot;, binwidth = 0.025) +
   geom_vline(xintercept = 0, size = 1.5, linetype = &quot;dashed&quot;) +
@@ -1425,19 +1435,21 @@ paste(prob*100,&quot;% of samples are less than 0&quot;)</code></pre>
            x = -0.9, y = 300,
            label = paste(prob*100,&quot;% of samples \nare less than 0&quot;),
            fontface = 2)</code></pre>
-<p><img src="teting_files/figure-html/unnamed-chunk-47-1.png" width="672" /></p>
+<p><img src="teting_files/figure-html/unnamed-chunk-46-1.png" width="672" /></p>
 <p>With this method the answer to our question is maybe!</p>
 <p>Let’s also assess with Bayes Factors.</p>
 <pre class="r"><code>h &lt;- hypothesis(mod_lik2, &quot;Condition_fginger=0&quot;)
 h</code></pre>
 <pre><code>## Hypothesis Tests for class b:
-##                Hypothesis Estimate Est.Error CI.Lower CI.Upper Evid.Ratio Post.Prob Star
-## 1 (Condition_fginger) = 0    -0.22      0.17    -0.56     0.12        1.1      0.53     
+##                Hypothesis Estimate Est.Error CI.Lower CI.Upper Evid.Ratio
+## 1 (Condition_fginger) = 0    -0.22      0.17    -0.55     0.12        1.1
+##   Post.Prob Star
+## 1      0.52     
 ## ---
 ## &#39;*&#39;: The expected value under the hypothesis lies outside the 95%-CI.
 ## Posterior probabilities of point hypotheses assume equal prior probabilities.</code></pre>
 <pre class="r"><code>plot(h)</code></pre>
-<p><img src="teting_files/figure-html/unnamed-chunk-49-1.png" width="672" /></p>
+<p><img src="teting_files/figure-html/unnamed-chunk-48-1.png" width="672" /></p>
 <p>With this method the answer is that it is as likely as it was before (see Appendix A for the effect of changing the prior)</p>
 </div>
 </div>
@@ -1487,13 +1499,12 @@ mod_lik4 &lt;- brm(ff,
                control= list(adapt_delta =0.98,
                              max_treedepth = 15))</code></pre>
 <pre><code>## Compiling the C++ model</code></pre>
-<pre><code>## recompiling to avoid crashing R session</code></pre>
 <pre><code>## Start sampling</code></pre>
 <pre class="r"><code>post &lt;- posterior_samples(mod_lik4, &quot;^b&quot;)
 q_97 &lt;- quantile(post$b_Condition_fginger, c(0.015, 0.985))
 q_97</code></pre>
-<pre><code>##   1.5%    98% 
-## -0.253  0.062</code></pre>
+<pre><code>##  1.5%   98% 
+## -0.24  0.06</code></pre>
 <p>Very similar to before.</p>
 <pre class="r"><code>prob &lt;- sum(post$b_Condition_fginger&lt;0)/length(post$b_Condition_fginger)
 paste(round(prob,2)*100,&quot;% of samples are less than 0&quot;)</code></pre>
@@ -1510,19 +1521,21 @@ paste(round(prob,2)*100,&quot;% of samples are less than 0&quot;)</code></pre>
            x = -0.9, y = 300,
            label = paste(prob*100,&quot;% of samples \nare less than 0&quot;),
            fontface = 2)</code></pre>
-<p><img src="teting_files/figure-html/unnamed-chunk-52-1.png" width="672" /></p>
+<p><img src="teting_files/figure-html/unnamed-chunk-51-1.png" width="672" /></p>
 <p>With this method the answer doesn’t change much.</p>
 <p>Let’s also assess with Bayes Factors.</p>
 <pre class="r"><code>h &lt;- hypothesis(mod_lik4, &quot;Condition_fginger=0&quot;)
 h</code></pre>
 <pre><code>## Hypothesis Tests for class b:
-##                Hypothesis Estimate Est.Error CI.Lower CI.Upper Evid.Ratio Post.Prob Star
-## 1 (Condition_fginger) = 0     -0.1      0.07    -0.23     0.05       0.58      0.37     
+##                Hypothesis Estimate Est.Error CI.Lower CI.Upper Evid.Ratio
+## 1 (Condition_fginger) = 0    -0.09      0.07    -0.23     0.04       0.59
+##   Post.Prob Star
+## 1      0.37     
 ## ---
 ## &#39;*&#39;: The expected value under the hypothesis lies outside the 95%-CI.
 ## Posterior probabilities of point hypotheses assume equal prior probabilities.</code></pre>
 <pre class="r"><code>plot(h)</code></pre>
-<p><img src="teting_files/figure-html/unnamed-chunk-54-1.png" width="672" /></p>
+<p><img src="teting_files/figure-html/unnamed-chunk-53-1.png" width="672" /></p>
 <p>With this method the answer BF is suddenly close to 2. Not super-strong evidence, but a different story than earlier.</p>
 </div>
 <div id="appendix-b-viewing-stan-code" class="section level1">
@@ -1722,18 +1735,18 @@ str(tmp_dat, 1, give.attr = FALSE)</code></pre>
 <pre class="r"><code>#example of output
 initfun()</code></pre>
 <pre><code>## $b
-## [1] 0.015
+## [1] -0.05
 ## 
 ## $temp_Intercept
-## [1] -2.02 -1.17 -0.41  0.62  1.12  1.90
+## [1] -1.94 -1.17 -0.33  0.29  1.33  2.12
 ## 
 ## $sd_1
-## [1] 0.65 0.57
+## [1] 0.69 0.63
 ## 
 ## $z_1
-##        [,1]    [,2]    [,3]
-## [1,]  0.003 -0.0099  0.0063
-## [2,] -0.021 -0.0064 -0.0061
+##         [,1]    [,2]    [,3]
+## [1,] -0.0236  0.0185 0.00033
+## [2,] -0.0079 -0.0081 0.00967
 ## 
 ## $L_1
 ##      [,1] [,2]

@@ -3,11 +3,58 @@ title: "Further reading"
 output: html_document
 ---
 
-Further reading.
+Here is are some links to text and video that might be useful. 
+
+##Books
+
+- [Gelman & Hill - Data Analysis Using Regression and Multilevel/Hierarchical Models](https://www.alibris.com/Analytical-Methods-for-Social-Research-Data-Analysis-Using-Regression-and-Multilevel-Hierarchical-Models-Andrew-Gelman/book/41693980)
+
+- [McElreath - Statistical Rethinking](https://xcelab.net/rm/statistical-rethinking/)
+
+- [Kruschke - Doing Bayesian Data Analysis](https://sites.google.com/site/doingbayesiandataanalysis/)
+
+##Video Tutorials
+
+- Richard McElreath has [recordings from the courses](https://www.youtube.com/channel/UCNJK6_DZvcMqNSzQdEkzvzA/playlists) he teaches based on his book
+
+- Rasmus Bååth's [excellent intro tutorial](https://www.youtube.com/watch?v=3OJEae7Qb_o)
+
+- Paul Christian Bürkner [talks about prior selection](https://www.youtube.com/watch?v=Uz9r8eV2erQ)
+
+- Richard McElreath on [Bayesian Statistics without frequentist language](https://www.youtube.com/watch?v=yakg94HyWdE)
+
+- Ben Goodrich  [on hierarchical models](https://www.youtube.com/watch?v=DzaQiJG3RpA&list=PLuwyh42iHquU4hUBQs20hkBsKSMrp6H0J&index=7)
+
+- Jonah Gabry and Dan Simpson [on visualization as part of a Bayesian workflow](https://www.youtube.com/watch?v=E8vdXoJId8M)
+
+##Other stuff
+
+- [Stan team's recommendation on priors](https://github.com/stan-dev/stan/wiki/Prior-Choice-Recommendations)
+
+- [Excellent blog post by Dan Simpson on priors](https://andrewgelman.com/2018/04/03/justify-my-love/)
+
+- [This post has some thoughts on priors variance components in logistic models](https://www.barelysignificant.com/post/icc/) (and ICC calculations)
+
+- [Nice clear explanation of MCMC by Richard McELreath](http://elevanth.org/blog/2017/11/28/build-a-better-markov-chain/)
+
+- [Official Stan documentation with tons manuals, tutorials and case studies](http://mc-stan.org/users/documentation/index.html)
+
+- [stan (and brms!) forums](https://discourse.mc-stan.org/)
+
+##R packages
+
+- [brms](https://github.com/paul-buerkner/brms) 
+
+- [brms vignettes](https://cran.r-project.org/web/packages/brms/vignettes/2)
+
+- [Bayesplot](http://mc-stan.org/bayesplot/index.html)
+
+- [sjstats](https://strengejacke.github.io/sjstats/index.html)
+
+- [brmstools](https://mvuorre.github.io/brmstools/index.html)
+
+- [loo](http://mc-stan.org/loo/index.html)
+
+- [tidybayes](https://mjskay.github.io/tidybayes/)
 
 
-Books on bayes
-
-Stuff about priors
-
-Useful packages
